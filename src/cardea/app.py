@@ -11,9 +11,11 @@ import logging
 import pkgutil
 import tomllib
 from pathlib import Path
+from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import RequestResponseEndpoint
 
 import cardea.proxies
 
@@ -26,7 +28,7 @@ logger = logging.getLogger(__name__)
 CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.toml"
 
 
-def _load_config() -> dict:
+def _load_config() -> dict[str, Any]:
     if not CONFIG_PATH.exists():
         logger.warning(
             "No config.toml found — copy config.toml.example to config.toml "
@@ -76,7 +78,9 @@ if not loaded:
 if _disabled_endpoints:
 
     @app.middleware("http")
-    async def _block_disabled_endpoints(request, call_next):  # type: ignore[misc]
+    async def _block_disabled_endpoints(
+        request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         if request.url.path in _disabled_endpoints:
             return JSONResponse(
                 status_code=403,

@@ -9,6 +9,7 @@ continues to work.
 import importlib
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.toml"
@@ -20,8 +21,6 @@ gmail = true
 [gmail]
 disabled_endpoints = ["send"]
 """
-
-import pytest
 
 
 @pytest.fixture()
