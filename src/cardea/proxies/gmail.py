@@ -1,10 +1,10 @@
 """
 Gmail API proxy.
 
-Credentials are read from three environment variables:
-  GMAIL_CLIENT_ID      — Google OAuth2 client ID
-  GMAIL_CLIENT_SECRET  — Google OAuth2 client secret
-  GMAIL_REFRESH_TOKEN  — Offline refresh token
+Credentials are read from three secrets (or environment variables):
+  cardea_gmail_client_id      — Google OAuth2 client ID
+  cardea_gmail_client_secret  — Google OAuth2 client secret
+  cardea_gmail_refresh_token  — Offline refresh token
 
 Access tokens are fetched via the OAuth2 token endpoint and cached with a
 60-second safety margin before expiry, so they are refreshed lazily on each
@@ -20,7 +20,6 @@ POST /reply/{thread_id}     Reply in an existing thread.
 
 import base64
 import logging
-import os
 import time
 from email.mime.text import MIMEText
 from typing import Any
@@ -28,6 +27,8 @@ from typing import Any
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from cardea.secrets import get_secret
 
 logger = logging.getLogger(__name__)
 
@@ -43,18 +44,28 @@ _token_expiry: float = 0.0
 
 router = APIRouter()
 
-_CRED_VARS = ("GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN")
+_CRED_VARS = (
+    "cardea_gmail_client_id",
+    "cardea_gmail_client_secret",
+    "cardea_gmail_refresh_token",
+)
 
 
 def _check_credentials() -> None:
-    """Raise if any required Gmail env var is missing."""
-    missing = [var for var in _CRED_VARS if not os.environ.get(var)]
+    """Raise if any required Gmail credential is missing."""
+    missing = []
+    for var in _CRED_VARS:
+        try:
+            get_secret(var)
+        except RuntimeError:
+            missing.append(var)
     if missing:
         raise HTTPException(
             status_code=503,
             detail=(
                 "Gmail credentials not configured. "
-                "Set the following environment variables: " + ", ".join(missing)
+                "Provide the following as secrets or environment variables: "
+                + ", ".join(missing)
             ),
         )
 
@@ -72,9 +83,9 @@ async def _get_access_token() -> str:
         resp = await client.post(
             TOKEN_URL,
             data={
-                "client_id": os.environ.get("GMAIL_CLIENT_ID"),
-                "client_secret": os.environ.get("GMAIL_CLIENT_SECRET"),
-                "refresh_token": os.environ.get("GMAIL_REFRESH_TOKEN"),
+                "client_id": get_secret("cardea_gmail_client_id"),
+                "client_secret": get_secret("cardea_gmail_client_secret"),
+                "refresh_token": get_secret("cardea_gmail_refresh_token"),
                 "grant_type": "refresh_token",
             },
         )

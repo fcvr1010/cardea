@@ -14,7 +14,7 @@ client = TestClient(app)
 
 FAKE_TOKEN = "123456789:AABBccDDeeFFggHHiiJJkkLLmmNN"
 BOT_ALIAS = "myproject"
-ENV_VAR = f"TELEGRAM_TOKEN_FOR_BOT_{BOT_ALIAS.upper()}"
+ENV_VAR = f"cardea_telegram_token_for_bot_{BOT_ALIAS.lower()}"
 
 
 def _fake_upstream_response(
@@ -49,7 +49,7 @@ def test_missing_token_returns_503():
     """Requesting a bot alias with no matching credential yields 503."""
     response = client.get("/telegram/botunknown/getMe")
     assert response.status_code == 503
-    assert "TELEGRAM_TOKEN_FOR_BOT_UNKNOWN" in response.json()["detail"]
+    assert "cardea_telegram_token_for_bot_unknown" in response.json()["detail"]
 
 
 def test_health_endpoint():
@@ -128,7 +128,9 @@ def test_bot_alias_case_insensitive_cred(mock_client_cls):
     fake_resp = _fake_upstream_response()
     mock_client_cls.return_value = _make_mock_client(fake_resp)
 
-    with patch.dict("os.environ", {"TELEGRAM_TOKEN_FOR_BOT_MIXEDCASE": FAKE_TOKEN}):
+    with patch.dict(
+        "os.environ", {"cardea_telegram_token_for_bot_mixedcase": FAKE_TOKEN}
+    ):
         response = client.get("/telegram/botMixedCase/getMe")
     assert response.status_code == 200
 
@@ -153,7 +155,7 @@ def test_file_missing_token_returns_503():
     """File download route returns 503 without a matching credential."""
     response = client.get("/telegram/file/botunknown/documents/file_123.pdf")
     assert response.status_code == 503
-    assert "TELEGRAM_TOKEN_FOR_BOT_UNKNOWN" in response.json()["detail"]
+    assert "cardea_telegram_token_for_bot_unknown" in response.json()["detail"]
 
 
 @patch("cardea.proxies.telegram.httpx.AsyncClient")

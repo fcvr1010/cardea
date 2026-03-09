@@ -13,7 +13,7 @@ from cardea.app import app
 client = TestClient(app)
 
 FAKE_TOKEN = "ghp_fakePersonalAccessToken1234567890"
-ENV = {"GITHUB_TOKEN": FAKE_TOKEN}
+ENV = {"cardea_github_token": FAKE_TOKEN}
 
 
 def _fake_upstream_response(status: int = 200, body: bytes = b"") -> MagicMock:
@@ -41,17 +41,17 @@ def _make_mock_client(fake_resp: MagicMock) -> MagicMock:
 
 
 def test_missing_token_returns_503():
-    """Requesting without GITHUB_TOKEN env var yields 503."""
+    """Requesting without cardea_github_token env var yields 503."""
     response = client.get("/github/owner/repo.git/info/refs")
     assert response.status_code == 503
-    assert "GITHUB_TOKEN" in response.json()["detail"]
+    assert "cardea_github_token" in response.json()["detail"]
 
 
 def test_missing_token_returns_503_api():
-    """API route also yields 503 without GITHUB_TOKEN."""
+    """API route also yields 503 without cardea_github_token."""
     response = client.get("/github/api/repos/owner/repo/pulls")
     assert response.status_code == 503
-    assert "GITHUB_TOKEN" in response.json()["detail"]
+    assert "cardea_github_token" in response.json()["detail"]
 
 
 # ── Git proxy forwarding ─────────────────────────────────────────────────────

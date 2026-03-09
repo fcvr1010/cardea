@@ -7,17 +7,18 @@ Outgoing URL:   https://api.telegram.org/bot<TOKEN>/<method>
 File download path:  /file/botX/<file_path>
 File download URL:   https://api.telegram.org/file/bot<TOKEN>/<file_path>
 
-The real token is read from the environment variable
-TELEGRAM_TOKEN_FOR_BOT_<ALIAS> (uppercased).
+The real token is read from the secret (or environment variable)
+cardea_telegram_token_for_bot_<alias> (lowercased).
 """
 
 import logging
-import os
 from collections.abc import AsyncIterator
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
+
+from cardea.secrets import get_secret
 
 logger = logging.getLogger(__name__)
 
@@ -46,17 +47,17 @@ router = APIRouter()
 
 def _resolve_token(bot_alias: str) -> str:
     """Return the real Telegram token for *bot_alias*, or raise if not configured."""
-    env_var = f"TELEGRAM_TOKEN_FOR_BOT_{bot_alias.upper()}"
-    token = os.environ.get(env_var)
-    if not token:
+    secret_name = f"cardea_telegram_token_for_bot_{bot_alias.lower()}"
+    try:
+        return get_secret(secret_name)
+    except RuntimeError:
         raise HTTPException(
             status_code=503,
             detail=(
                 f"No token configured for bot alias '{bot_alias}'. "
-                f"Set the {env_var} environment variable before starting the proxy."
+                f"Provide {secret_name} as a secret or environment variable."
             ),
         )
-    return token
 
 
 def _upstream_headers(request: Request) -> dict[str, str]:

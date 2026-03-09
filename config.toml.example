@@ -4,13 +4,13 @@
 [modules]
 
 # Telegram Bot API proxy
-# Env vars: TELEGRAM_TOKEN_FOR_BOT_<ALIAS> (one per bot alias)
+# Secrets: cardea_telegram_token_for_bot_<alias> (one per bot alias)
 telegram = false
 
 # GitHub git HTTPS proxy
-# Env vars: GITHUB_TOKEN
+# Secrets: cardea_github_token
 github = false
 
 # Gmail API proxy
-# Env vars: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN
+# Secrets: cardea_gmail_client_id, cardea_gmail_client_secret, cardea_gmail_refresh_token
 gmail = false

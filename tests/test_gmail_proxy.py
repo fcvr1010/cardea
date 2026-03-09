@@ -19,9 +19,9 @@ client = TestClient(app)
 
 FAKE_TOKEN = "ya29.fake_access_token"
 CRED_ENV = {
-    "GMAIL_CLIENT_ID": "fake_client_id",
-    "GMAIL_CLIENT_SECRET": "fake_client_secret",
-    "GMAIL_REFRESH_TOKEN": "fake_refresh_token",
+    "cardea_gmail_client_id": "fake_client_id",
+    "cardea_gmail_client_secret": "fake_client_secret",
+    "cardea_gmail_refresh_token": "fake_refresh_token",
 }
 
 
@@ -74,9 +74,9 @@ def test_missing_all_credentials_returns_503():
     response = client.get("/gmail/messages")
     assert response.status_code == 503
     detail = response.json()["detail"]
-    assert "GMAIL_CLIENT_ID" in detail
-    assert "GMAIL_CLIENT_SECRET" in detail
-    assert "GMAIL_REFRESH_TOKEN" in detail
+    assert "cardea_gmail_client_id" in detail
+    assert "cardea_gmail_client_secret" in detail
+    assert "cardea_gmail_refresh_token" in detail
 
 
 @pytest.mark.parametrize("missing_var", list(CRED_ENV.keys()))
@@ -86,7 +86,7 @@ def test_any_missing_credential_returns_503(missing_var):
     with patch.dict("os.environ", partial, clear=False):
         response = client.get("/gmail/messages")
     assert response.status_code == 503
-    assert missing_var in response.json()["detail"]
+    assert missing_var.lower() in response.json()["detail"].lower()
 
 
 # ── Token refresh ────────────────────────────────────────────────────────────
