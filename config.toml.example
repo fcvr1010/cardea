@@ -14,3 +14,16 @@ github = false
 # Gmail API proxy
 # Secrets: cardea_gmail_client_id, cardea_gmail_client_secret, cardea_gmail_refresh_token
 gmail = false
+
+
+# ── Per-module endpoint control ──────────────────────────────────────────────
+# Add a section named after the module to selectively disable specific
+# endpoints while keeping the rest of the module active.
+#
+# Example — disable the Gmail send endpoint:
+#
+# [gmail]
+# disabled_endpoints = ["send"]
+#
+# The value is a list of path suffixes (without the module prefix).
+# "send" disables /gmail/send, "reply" would disable /gmail/reply/{...}, etc.
