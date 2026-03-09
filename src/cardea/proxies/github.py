@@ -11,7 +11,7 @@ REST API (issues, PRs, actions, …):
     Outgoing:  https://api.github.com/<path>
     Auth:      Bearer <PAT>
 
-The PAT is read from the GITHUB_TOKEN environment variable.
+The PAT is read from the cardea_github_token secret or environment variable.
 
 Configure git to route through the proxy with a one-time command:
 
@@ -20,12 +20,13 @@ Configure git to route through the proxy with a one-time command:
 
 import base64
 import logging
-import os
 from collections.abc import AsyncIterator
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
+
+from cardea.secrets import get_secret
 
 logger = logging.getLogger(__name__)
 
@@ -55,17 +56,17 @@ router = APIRouter()
 
 
 def _resolve_token() -> str:
-    """Return the GitHub PAT from env, or raise if not configured."""
-    token = os.environ.get("GITHUB_TOKEN")
-    if not token:
+    """Return the GitHub PAT, or raise if not configured."""
+    try:
+        return get_secret("cardea_github_token")
+    except RuntimeError:
         raise HTTPException(
             status_code=503,
             detail=(
                 "No GitHub token configured. "
-                "Set the GITHUB_TOKEN environment variable before starting the proxy."
+                "Provide cardea_github_token as a secret or environment variable."
             ),
         )
-    return token
 
 
 def _strip_headers(request: Request) -> dict[str, str]:

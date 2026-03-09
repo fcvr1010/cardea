@@ -25,11 +25,37 @@ Through a separate local proxy that handles the credentials. That's Cardea.
 Cardea exposes local endpoints for, e.g., sending an email via gmail. The agent just calls the endpoint with
 no auth. Then Cardea injects the credentials and submits the actual request to the gmail APIs.
 
-## Configuration
+## Running
 
-Copy `config.toml.example` to `config.toml` and enable the modules you need, e.g., github and telegram.
-Each module lists the environment variable that it expects. Set those variables and then start Cardea
-with `uv run cardea --host 127.0.0.1 --port 8000`.
+### Directly with uv
+
+Copy `config.toml.example` to `config.toml` and enable the modules you need.
+Set the required credentials as environment variables (listed in `config.toml.example`), then:
+
+```bash
+uv run cardea --host 127.0.0.1 --port 8000
+```
+
+### As a container with docker / podman
+
+Build the image from the repo root:
+
+```bash
+podman build -t cardea .
+```
+
+When running in a container, credentials can be provided as files under `/run/secrets/`
+(e.g. via `podman secret` or `docker secret`) instead of environment variables.
+Each module looks for its secret by name (e.g. `cardea_github_token`) — first
+as a file in `/run/secrets/<name>`, then as an env var. See `config.toml.example` for the full list.
+
+```bash
+# Example with podman secrets
+echo -n "ghp_..." | podman secret create cardea_github_token -
+podman run --secret cardea_github_token -v ./config.toml:/app/config.toml:ro -p 8000:8000 cardea
+```
+
+Mount your `config.toml` into the container at `/app/config.toml`.
 
 ## Contributing
 
