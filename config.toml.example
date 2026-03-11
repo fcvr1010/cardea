@@ -15,6 +15,18 @@ github = false
 # Secrets: cardea_gmail_client_id, cardea_gmail_client_secret, cardea_gmail_refresh_token
 gmail = false
 
+# Email proxy (IMAP/SMTP — no OAuth needed, just an app password)
+# Secrets: cardea_email_password
+email = false
+
+
+# ── Per-module configuration ─────────────────────────────────────────────────
+
+[email]
+address = "your@email.com"
+imap_server = "imap.gmail.com"
+smtp_server = "smtp.gmail.com"
+
 
 # ── Per-module endpoint control ──────────────────────────────────────────────
 # Add a section named after the module to selectively disable specific
