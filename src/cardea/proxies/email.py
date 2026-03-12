@@ -211,16 +211,26 @@ async def list_messages(q: str = "", max: int = 10) -> list[dict[str, Any]]:
             if not msg_data or msg_data[0] is None:
                 continue
 
-            # IMAP returns a list of tuples; header is in the first tuple.
-            raw_header = msg_data[0][1] if isinstance(msg_data[0], tuple) else b""
+            # IMAP may return HEADER and TEXT tuples in any order.
+            # Identify each by inspecting the descriptor bytes.
+            raw_header = b""
+            raw_snippet_bytes = b""
+            for item in msg_data:
+                if not isinstance(item, tuple) or len(item) < 2:
+                    continue
+                descriptor = item[0]
+                if not isinstance(descriptor, bytes):
+                    continue
+                if b"HEADER" in descriptor:
+                    raw_header = item[1] if isinstance(item[1], bytes) else b""
+                elif b"TEXT" in descriptor:
+                    raw_snippet_bytes = item[1] if isinstance(item[1], bytes) else b""
             msg = email_pkg.message_from_bytes(raw_header)
 
             # Snippet from partial body fetch.
             snippet = ""
-            if len(msg_data) > 1 and isinstance(msg_data[1], tuple):
-                raw_snippet = msg_data[1][1]
-                if isinstance(raw_snippet, bytes):
-                    snippet = raw_snippet.decode("utf-8", errors="replace").strip()
+            if raw_snippet_bytes:
+                snippet = raw_snippet_bytes.decode("utf-8", errors="replace").strip()
 
             results.append(
                 {
