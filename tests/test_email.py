@@ -193,6 +193,39 @@ def test_list_messages_returns_parsed_fields(mock_imap_cls, _mock_cfg):
 
 @patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
+def test_list_messages_reversed_fetch_order(mock_imap_cls, _mock_cfg):
+    """GET /email/messages works when IMAP returns TEXT before HEADER."""
+    header = _build_header_bytes(subject="Reversed", from_addr="bob@example.com")
+    snippet = b"Body preview text"
+
+    imap = _mock_imap(
+        search_uids=[b"77"],
+        fetch_responses={
+            "77": [
+                (b"77 (BODY[TEXT]<0> {17}", snippet),
+                (b"77 (BODY[HEADER] {100}", header),
+                b")",
+            ]
+        },
+    )
+    mock_imap_cls.return_value = imap
+
+    with patch.dict("os.environ", CRED_ENV):
+        response = client.get("/email/messages?q=ALL&max=5")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    msg = data[0]
+    assert msg["id"] == "77"
+    assert msg["subject"] == "Reversed"
+    assert msg["from"] == "bob@example.com"
+    assert msg["date"] == "Mon, 1 Jan 2024 12:00:00 +0000"
+    assert msg["snippet"] == "Body preview text"
+
+
+@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_list_messages_empty_inbox(mock_imap_cls, _mock_cfg):
     """Empty SEARCH result returns an empty list."""
     imap = _mock_imap(search_uids=[])
