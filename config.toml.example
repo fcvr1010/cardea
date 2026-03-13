@@ -7,10 +7,6 @@
 # Secrets: cardea_telegram_token_for_bot_<alias> (one per bot alias)
 telegram = false
 
-# GitHub git HTTPS proxy
-# Secrets: cardea_github_token
-github = false
-
 # Gmail API proxy
 # Secrets: cardea_gmail_client_id, cardea_gmail_client_secret, cardea_gmail_refresh_token
 gmail = false
@@ -39,3 +35,35 @@ smtp_server = "smtp.gmail.com"
 #
 # The value is a list of path suffixes (without the module prefix).
 # "send" disables /gmail/send, "reply" would disable /gmail/reply/{...}, etc.
+
+
+# ── Generic HTTP services ────────────────────────────────────────────────────
+# Define config-driven reverse proxies for any REST API.  Each [services.NAME]
+# block creates a route: <prefix>/* → <upstream>/* with credential injection.
+#
+# Supported auth types:
+#   bearer  — Authorization: Bearer <secret>
+#   basic   — Authorization: Basic base64(<username>:<secret>)
+#   header  — Custom header (set auth.header_name)
+#   query   — Query parameter (set auth.param_name)
+#   none    — No credential injection
+#
+# Adding a new service is just 4 lines + a podman secret:
+#
+#   [services.my-api]
+#   prefix = "/my-api"
+#   upstream = "https://api.example.com"
+#   auth = { type = "bearer", secret = "cardea_my_api_token" }
+#
+# Services are matched by prefix length (longest first), so /github/api
+# matches before /github.
+
+[services.github-api]
+prefix = "/github/api"
+upstream = "https://api.github.com"
+auth = { type = "bearer", secret = "cardea_github_token" }
+
+[services.github-git]
+prefix = "/github"
+upstream = "https://github.com"
+auth = { type = "basic", username = "x-access-token", secret = "cardea_github_token" }
