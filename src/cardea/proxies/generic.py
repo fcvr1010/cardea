@@ -163,9 +163,7 @@ async def _proxy(
 # ── Router factory ────────────────────────────────────────────────────────────
 
 
-def _make_handler(
-    service_name: str, upstream: str, auth: dict[str, Any]
-) -> Any:  # noqa: ANN401
+def _make_handler(service_name: str, upstream: str, auth: dict[str, Any]) -> Any:  # noqa: ANN401
     """Return an async route handler for one generic service."""
 
     async def _handler(path: str, request: Request) -> StreamingResponse:

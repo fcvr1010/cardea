@@ -33,7 +33,9 @@ from cardea.proxies.generic import (
 
 
 def _fake_upstream_response(
-    status: int = 200, body: bytes = b'{"ok":true}', content_type: str = "application/json"
+    status: int = 200,
+    body: bytes = b'{"ok":true}',
+    content_type: str = "application/json",
 ) -> MagicMock:
     resp = MagicMock()
     resp.status_code = status
@@ -73,116 +75,157 @@ FAKE_BASIC_USER = "x-access-token"
 
 class TestValidation:
     def test_valid_bearer(self):
-        validate_service("test", {
-            "prefix": "/test",
-            "upstream": "https://api.example.com",
-            "auth": {"type": "bearer", "secret": "my_token"},
-        })
+        validate_service(
+            "test",
+            {
+                "prefix": "/test",
+                "upstream": "https://api.example.com",
+                "auth": {"type": "bearer", "secret": "my_token"},
+            },
+        )
 
     def test_valid_basic(self):
-        validate_service("test", {
-            "prefix": "/test",
-            "upstream": "https://example.com",
-            "auth": {"type": "basic", "username": "user", "secret": "my_pass"},
-        })
+        validate_service(
+            "test",
+            {
+                "prefix": "/test",
+                "upstream": "https://example.com",
+                "auth": {"type": "basic", "username": "user", "secret": "my_pass"},
+            },
+        )
 
     def test_valid_header(self):
-        validate_service("test", {
-            "prefix": "/test",
-            "upstream": "https://example.com",
-            "auth": {"type": "header", "header_name": "X-API-Key", "secret": "key"},
-        })
+        validate_service(
+            "test",
+            {
+                "prefix": "/test",
+                "upstream": "https://example.com",
+                "auth": {"type": "header", "header_name": "X-API-Key", "secret": "key"},
+            },
+        )
 
     def test_valid_query(self):
-        validate_service("test", {
-            "prefix": "/test",
-            "upstream": "https://example.com",
-            "auth": {"type": "query", "param_name": "api_key", "secret": "key"},
-        })
+        validate_service(
+            "test",
+            {
+                "prefix": "/test",
+                "upstream": "https://example.com",
+                "auth": {"type": "query", "param_name": "api_key", "secret": "key"},
+            },
+        )
 
     def test_valid_none(self):
-        validate_service("test", {
-            "prefix": "/test",
-            "upstream": "https://example.com",
-            "auth": {"type": "none"},
-        })
+        validate_service(
+            "test",
+            {
+                "prefix": "/test",
+                "upstream": "https://example.com",
+                "auth": {"type": "none"},
+            },
+        )
 
     def test_missing_prefix(self):
         with pytest.raises(ConfigError, match="missing required field 'prefix'"):
-            validate_service("test", {
-                "upstream": "https://example.com",
-                "auth": {"type": "none"},
-            })
+            validate_service(
+                "test",
+                {
+                    "upstream": "https://example.com",
+                    "auth": {"type": "none"},
+                },
+            )
 
     def test_missing_upstream(self):
         with pytest.raises(ConfigError, match="missing required field 'upstream'"):
-            validate_service("test", {
-                "prefix": "/test",
-                "auth": {"type": "none"},
-            })
+            validate_service(
+                "test",
+                {
+                    "prefix": "/test",
+                    "auth": {"type": "none"},
+                },
+            )
 
     def test_missing_auth_type(self):
         with pytest.raises(ConfigError, match="missing 'auth.type'"):
-            validate_service("test", {
-                "prefix": "/test",
-                "upstream": "https://example.com",
-                "auth": {},
-            })
+            validate_service(
+                "test",
+                {
+                    "prefix": "/test",
+                    "upstream": "https://example.com",
+                    "auth": {},
+                },
+            )
 
     def test_invalid_auth_type(self):
         with pytest.raises(ConfigError, match="invalid auth.type 'magic'"):
-            validate_service("test", {
-                "prefix": "/test",
-                "upstream": "https://example.com",
-                "auth": {"type": "magic"},
-            })
+            validate_service(
+                "test",
+                {
+                    "prefix": "/test",
+                    "upstream": "https://example.com",
+                    "auth": {"type": "magic"},
+                },
+            )
 
     def test_bearer_missing_secret(self):
         with pytest.raises(ConfigError, match="requires 'auth.secret'"):
-            validate_service("test", {
-                "prefix": "/test",
-                "upstream": "https://example.com",
-                "auth": {"type": "bearer"},
-            })
+            validate_service(
+                "test",
+                {
+                    "prefix": "/test",
+                    "upstream": "https://example.com",
+                    "auth": {"type": "bearer"},
+                },
+            )
 
     def test_basic_missing_username(self):
         with pytest.raises(ConfigError, match="requires 'auth.username'"):
-            validate_service("test", {
-                "prefix": "/test",
-                "upstream": "https://example.com",
-                "auth": {"type": "basic", "secret": "s"},
-            })
+            validate_service(
+                "test",
+                {
+                    "prefix": "/test",
+                    "upstream": "https://example.com",
+                    "auth": {"type": "basic", "secret": "s"},
+                },
+            )
 
     def test_header_missing_header_name(self):
         with pytest.raises(ConfigError, match="requires 'auth.header_name'"):
-            validate_service("test", {
-                "prefix": "/test",
-                "upstream": "https://example.com",
-                "auth": {"type": "header", "secret": "s"},
-            })
+            validate_service(
+                "test",
+                {
+                    "prefix": "/test",
+                    "upstream": "https://example.com",
+                    "auth": {"type": "header", "secret": "s"},
+                },
+            )
 
     def test_query_missing_param_name(self):
         with pytest.raises(ConfigError, match="requires 'auth.param_name'"):
-            validate_service("test", {
-                "prefix": "/test",
-                "upstream": "https://example.com",
-                "auth": {"type": "query", "secret": "s"},
-            })
+            validate_service(
+                "test",
+                {
+                    "prefix": "/test",
+                    "upstream": "https://example.com",
+                    "auth": {"type": "query", "secret": "s"},
+                },
+            )
 
     def test_duplicate_prefix_rejected(self):
         with pytest.raises(ConfigError, match="prefix '/test' conflicts"):
-            build_routers({
-                "svc-a": {
-                    "prefix": "/test",
-                    "upstream": "https://a.example.com",
-                    "auth": {"type": "none"},
-                },
-                "svc-b": {
-                    "prefix": "/test",
-                    "upstream": "https://b.example.com",
-                    "auth": {"type": "none"},
-                },
-            })
+            build_routers(
+                {
+                    "svc-a": {
+                        "prefix": "/test",
+                        "upstream": "https://a.example.com",
+                        "auth": {"type": "none"},
+                    },
+                    "svc-b": {
+                        "prefix": "/test",
+                        "upstream": "https://b.example.com",
+                        "auth": {"type": "none"},
+                    },
+                }
+            )
 
 
 # ── Prefix ordering ──────────────────────────────────────────────────────────
@@ -190,18 +233,20 @@ class TestValidation:
 
 class TestPrefixOrdering:
     def test_longer_prefix_first(self):
-        routers = build_routers({
-            "short": {
-                "prefix": "/api",
-                "upstream": "https://short.example.com",
-                "auth": {"type": "none"},
-            },
-            "long": {
-                "prefix": "/api/v2",
-                "upstream": "https://long.example.com",
-                "auth": {"type": "none"},
-            },
-        })
+        routers = build_routers(
+            {
+                "short": {
+                    "prefix": "/api",
+                    "upstream": "https://short.example.com",
+                    "auth": {"type": "none"},
+                },
+                "long": {
+                    "prefix": "/api/v2",
+                    "upstream": "https://long.example.com",
+                    "auth": {"type": "none"},
+                },
+            }
+        )
         prefixes = [prefix for _, prefix, _ in routers]
         assert prefixes == ["/api/v2", "/api"]
 
@@ -217,13 +262,15 @@ class TestBearerAuth:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "test-api": {
-                "prefix": "/test",
-                "upstream": "https://api.example.com",
-                "auth": {"type": "bearer", "secret": "my_token"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "test-api": {
+                    "prefix": "/test",
+                    "upstream": "https://api.example.com",
+                    "auth": {"type": "bearer", "secret": "my_token"},
+                },
+            }
+        )
         client = TestClient(app)
         response = client.get("/test/some/path")
         assert response.status_code == 200
@@ -239,13 +286,15 @@ class TestBearerAuth:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "test-api": {
-                "prefix": "/test",
-                "upstream": "https://api.example.com",
-                "auth": {"type": "bearer", "secret": "my_token"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "test-api": {
+                    "prefix": "/test",
+                    "upstream": "https://api.example.com",
+                    "auth": {"type": "bearer", "secret": "my_token"},
+                },
+            }
+        )
         client = TestClient(app)
         client.get("/test/repos/owner/repo")
 
@@ -265,13 +314,19 @@ class TestBasicAuth:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "git": {
-                "prefix": "/git",
-                "upstream": "https://github.com",
-                "auth": {"type": "basic", "username": FAKE_BASIC_USER, "secret": "my_pass"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "git": {
+                    "prefix": "/git",
+                    "upstream": "https://github.com",
+                    "auth": {
+                        "type": "basic",
+                        "username": FAKE_BASIC_USER,
+                        "secret": "my_pass",
+                    },
+                },
+            }
+        )
         client = TestClient(app)
         client.get("/git/owner/repo.git/info/refs")
 
@@ -295,17 +350,19 @@ class TestHeaderAuth:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "custom": {
-                "prefix": "/custom",
-                "upstream": "https://api.example.com",
-                "auth": {
-                    "type": "header",
-                    "header_name": "X-API-Key",
-                    "secret": "my_key",
+        app = _build_test_app(
+            {
+                "custom": {
+                    "prefix": "/custom",
+                    "upstream": "https://api.example.com",
+                    "auth": {
+                        "type": "header",
+                        "header_name": "X-API-Key",
+                        "secret": "my_key",
+                    },
                 },
-            },
-        })
+            }
+        )
         client = TestClient(app)
         client.get("/custom/endpoint")
 
@@ -325,17 +382,19 @@ class TestQueryAuth:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "maps": {
-                "prefix": "/maps",
-                "upstream": "https://maps.googleapis.com",
-                "auth": {
-                    "type": "query",
-                    "param_name": "key",
-                    "secret": "my_key",
+        app = _build_test_app(
+            {
+                "maps": {
+                    "prefix": "/maps",
+                    "upstream": "https://maps.googleapis.com",
+                    "auth": {
+                        "type": "query",
+                        "param_name": "key",
+                        "secret": "my_key",
+                    },
                 },
-            },
-        })
+            }
+        )
         client = TestClient(app)
         client.get("/maps/api/geocode/json")
 
@@ -354,13 +413,15 @@ class TestNoAuth:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "public": {
-                "prefix": "/public",
-                "upstream": "https://public.example.com",
-                "auth": {"type": "none"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "public": {
+                    "prefix": "/public",
+                    "upstream": "https://public.example.com",
+                    "auth": {"type": "none"},
+                },
+            }
+        )
         client = TestClient(app)
         client.get("/public/data")
 
@@ -380,13 +441,15 @@ class TestQueryString:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "api": {
-                "prefix": "/api",
-                "upstream": "https://api.example.com",
-                "auth": {"type": "bearer", "secret": "tok"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "api": {
+                    "prefix": "/api",
+                    "upstream": "https://api.example.com",
+                    "auth": {"type": "bearer", "secret": "tok"},
+                },
+            }
+        )
         client = TestClient(app)
         client.get("/api/search?q=hello&page=2")
 
@@ -402,13 +465,15 @@ class TestQueryString:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "maps": {
-                "prefix": "/maps",
-                "upstream": "https://maps.example.com",
-                "auth": {"type": "query", "param_name": "key", "secret": "tok"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "maps": {
+                    "prefix": "/maps",
+                    "upstream": "https://maps.example.com",
+                    "auth": {"type": "query", "param_name": "key", "secret": "tok"},
+                },
+            }
+        )
         client = TestClient(app)
         client.get("/maps/geocode?address=Zurich")
 
@@ -429,15 +494,19 @@ class TestHeaderStripping:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "api": {
-                "prefix": "/api",
-                "upstream": "https://api.example.com",
-                "auth": {"type": "bearer", "secret": "tok"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "api": {
+                    "prefix": "/api",
+                    "upstream": "https://api.example.com",
+                    "auth": {"type": "bearer", "secret": "tok"},
+                },
+            }
+        )
         client = TestClient(app)
-        client.get("/api/resource", headers={"Authorization": "Bearer should-be-stripped"})
+        client.get(
+            "/api/resource", headers={"Authorization": "Bearer should-be-stripped"}
+        )
 
         built_req = mock_client.build_request.call_args
         headers = built_req.kwargs.get("headers") or built_req[1].get("headers", {})
@@ -451,13 +520,15 @@ class TestHeaderStripping:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "api": {
-                "prefix": "/api",
-                "upstream": "https://api.example.com",
-                "auth": {"type": "bearer", "secret": "tok"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "api": {
+                    "prefix": "/api",
+                    "upstream": "https://api.example.com",
+                    "auth": {"type": "bearer", "secret": "tok"},
+                },
+            }
+        )
         client = TestClient(app)
         client.get("/api/resource", headers={"Connection": "keep-alive"})
 
@@ -471,13 +542,15 @@ class TestHeaderStripping:
 
 class TestErrorHandling:
     def test_missing_secret_returns_503(self):
-        app = _build_test_app({
-            "api": {
-                "prefix": "/api",
-                "upstream": "https://api.example.com",
-                "auth": {"type": "bearer", "secret": "nonexistent_secret"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "api": {
+                    "prefix": "/api",
+                    "upstream": "https://api.example.com",
+                    "auth": {"type": "bearer", "secret": "nonexistent_secret"},
+                },
+            }
+        )
         client = TestClient(app)
         response = client.get("/api/test")
         assert response.status_code == 503
@@ -496,19 +569,24 @@ class TestHttpMethods:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "api": {
-                "prefix": "/api",
-                "upstream": "https://api.example.com",
-                "auth": {"type": "bearer", "secret": "tok"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "api": {
+                    "prefix": "/api",
+                    "upstream": "https://api.example.com",
+                    "auth": {"type": "bearer", "secret": "tok"},
+                },
+            }
+        )
         client = TestClient(app)
         response = getattr(client, method.lower())("/api/resource")
         assert response.status_code == 200
 
         built_req = mock_client.build_request.call_args
-        assert built_req.kwargs.get("method") == method or built_req[1].get("method") == method
+        assert (
+            built_req.kwargs.get("method") == method
+            or built_req[1].get("method") == method
+        )
 
 
 # ── Streaming ─────────────────────────────────────────────────────────────────
@@ -523,13 +601,15 @@ class TestStreaming:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "api": {
-                "prefix": "/api",
-                "upstream": "https://api.example.com",
-                "auth": {"type": "bearer", "secret": "tok"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "api": {
+                    "prefix": "/api",
+                    "upstream": "https://api.example.com",
+                    "auth": {"type": "bearer", "secret": "tok"},
+                },
+            }
+        )
         client = TestClient(app)
         response = client.get("/api/data")
         assert response.content == body
@@ -541,13 +621,15 @@ class TestStreaming:
         mock_client = _make_mock_client(fake_resp)
         mock_client_cls.return_value = mock_client
 
-        app = _build_test_app({
-            "api": {
-                "prefix": "/api",
-                "upstream": "https://api.example.com",
-                "auth": {"type": "bearer", "secret": "tok"},
-            },
-        })
+        app = _build_test_app(
+            {
+                "api": {
+                    "prefix": "/api",
+                    "upstream": "https://api.example.com",
+                    "auth": {"type": "bearer", "secret": "tok"},
+                },
+            }
+        )
         client = TestClient(app)
         response = client.get("/api/missing")
         assert response.status_code == 404

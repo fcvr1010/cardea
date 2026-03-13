@@ -67,3 +67,25 @@ auth = { type = "bearer", secret = "cardea_github_token" }
 prefix = "/github"
 upstream = "https://github.com"
 auth = { type = "basic", username = "x-access-token", secret = "cardea_github_token" }
+
+
+# ── Browser credential manager ───────────────────────────────────────────────
+# Auto-fill login forms via CDP (Chrome DevTools Protocol) without the
+# AI agent ever seeing the actual credentials.
+#
+# Requires: the Chromium instance exposes a CDP port reachable from this
+# container (e.g. via Compose bridge networking).
+#
+# Secret format (JSON): {"username": "...", "password": "..."}
+# Key names in "fields" must match keys in the secret JSON.
+
+# [browser]
+# cdp_endpoint = "ws://vito:9222"
+#
+# [browser.sites.github]
+# url_pattern = "github.com/login"
+# secret = "browser_github"
+# fields = [
+#   { selector = "#login_field", key = "username" },
+#   { selector = "#password", key = "password" },
+# ]

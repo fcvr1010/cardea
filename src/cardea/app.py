@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import RequestResponseEndpoint
 
 import cardea.proxies
+from cardea.proxies import browser as browser_module
 from cardea.proxies.generic import ConfigError, build_routers
 
 logging.basicConfig(
@@ -84,6 +85,16 @@ if _services_config:
     except ConfigError as exc:
         logger.error("Invalid [services.*] config: %s", exc)
         raise SystemExit(1) from exc
+
+# ── Load browser credential manager (if configured) ──────────────────────────
+_browser_config = _config.get("browser", {})
+if _browser_config:
+    browser_module.configure(_browser_config)
+    app.include_router(
+        browser_module.router, prefix=browser_module.PREFIX, tags=[browser_module.TAG]
+    )
+    logger.info("Browser credential manager enabled (prefix=%s)", browser_module.PREFIX)
+    loaded += 1
 
 if not loaded:
     logger.warning("No modules enabled — Cardea is running but won't proxy anything.")
