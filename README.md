@@ -57,12 +57,32 @@ podman run --secret cardea_github_token -v ./config.toml:/app/config.toml:ro -p 
 
 Mount your `config.toml` into the container at `/app/config.toml`.
 
+## Adding a new service
+
+### Config-driven (no code changes)
+
+For simple REST API proxying, add a `[services.<name>]` section to `config.toml`:
+
+```toml
+[services.my-api]
+prefix = "/my-api"
+upstream = "https://api.example.com"
+auth = { type = "bearer", secret = "my_api_token" }
+```
+
+Supported auth types: `bearer`, `basic`, `header`, `query`, `none`.
+
+Then create the secret (`podman secret create my_api_token /path/to/token`) and restart.
+
+### Custom module (for complex logic)
+
+For services requiring custom logic (OAuth2 token refresh, non-HTTP protocols,
+multi-tenant routing), create a Python module in `src/cardea/proxies/` with a
+router, PREFIX, and TAG.
+
 ## Contributing
 
-Addition of new modules is welcome. Contributions from coding agents are welcome too. Respecting the
-(extremely simple) architecture is mandatory.
-
-Adding a new proxy is just creating a file in `src/cardea/proxies/` with a router, PREFIX, and TAG.
+Contributions from coding agents are welcome too. Respecting the architecture is mandatory.
 
 ## Who's cardea
 

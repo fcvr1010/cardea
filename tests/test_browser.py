@@ -73,20 +73,18 @@ class TestDomainMatching:
     def test_unknown_domain_returns_404(self):
         app = _build_test_app(BROWSER_CONFIG)
         client = TestClient(app)
-        response = client.post(
-            "/browser/fill", json={"domain": "unknown-site.com"}
-        )
+        response = client.post("/browser/fill", json={"domain": "unknown-site.com"})
         assert response.status_code == 404
         assert "unknown-site.com" in response.json()["detail"]
 
     def test_exact_pattern_match(self):
-        app = _build_test_app(BROWSER_CONFIG)
+        _build_test_app(BROWSER_CONFIG)
         # github.com/login matches "github.com/login"
         name, cfg = browser_module._find_site("github.com/login")
         assert name == "github"
 
     def test_partial_pattern_match(self):
-        app = _build_test_app(BROWSER_CONFIG)
+        _build_test_app(BROWSER_CONFIG)
         # "amazon.de/signin" contains "amazon."
         name, cfg = browser_module._find_site("amazon.de/signin")
         assert name == "amazon"
@@ -106,9 +104,7 @@ class TestMissingSecret:
         ) as mock_ws:
             mock_ws.return_value = "ws://vito:9222/devtools/page/123"
 
-            response = client.post(
-                "/browser/fill", json={"domain": "github.com/login"}
-            )
+            response = client.post("/browser/fill", json={"domain": "github.com/login"})
             assert response.status_code == 503
             assert "browser_github" in response.json()["detail"]
 
@@ -127,9 +123,7 @@ class TestInvalidSecret:
         ) as mock_ws:
             mock_ws.return_value = "ws://vito:9222/devtools/page/123"
 
-            response = client.post(
-                "/browser/fill", json={"domain": "github.com/login"}
-            )
+            response = client.post("/browser/fill", json={"domain": "github.com/login"})
             assert response.status_code == 500
             assert "not valid JSON" in response.json()["detail"]
 
@@ -154,9 +148,7 @@ class TestCdpUnreachable:
             )
             mock_cls.return_value = mock_client
 
-            response = client.post(
-                "/browser/fill", json={"domain": "github.com/login"}
-            )
+            response = client.post("/browser/fill", json={"domain": "github.com/login"})
             assert response.status_code == 502
             assert "Cannot reach browser CDP" in response.json()["detail"]
 
@@ -180,13 +172,9 @@ class TestSelectorNotFound:
             ) as mock_eval,
         ):
             mock_ws.return_value = "ws://vito:9222/devtools/page/123"
-            mock_eval.return_value = {
-                "result": {"result": {"value": {"found": False}}}
-            }
+            mock_eval.return_value = {"result": {"result": {"value": {"found": False}}}}
 
-            response = client.post(
-                "/browser/fill", json={"domain": "github.com/login"}
-            )
+            response = client.post("/browser/fill", json={"domain": "github.com/login"})
             assert response.status_code == 422
             assert "#login_field" in response.json()["detail"]
 
@@ -209,13 +197,9 @@ class TestSuccessfulFill:
             ) as mock_eval,
         ):
             mock_ws.return_value = "ws://vito:9222/devtools/page/123"
-            mock_eval.return_value = {
-                "result": {"result": {"value": {"found": True}}}
-            }
+            mock_eval.return_value = {"result": {"result": {"value": {"found": True}}}}
 
-            response = client.post(
-                "/browser/fill", json={"domain": "github.com/login"}
-            )
+            response = client.post("/browser/fill", json={"domain": "github.com/login"})
             assert response.status_code == 200
 
             data = response.json()
@@ -236,13 +220,9 @@ class TestSuccessfulFill:
             ) as mock_eval,
         ):
             mock_ws.return_value = "ws://vito:9222/devtools/page/123"
-            mock_eval.return_value = {
-                "result": {"result": {"value": {"found": True}}}
-            }
+            mock_eval.return_value = {"result": {"result": {"value": {"found": True}}}}
 
-            client.post(
-                "/browser/fill", json={"domain": "github.com/login"}
-            )
+            client.post("/browser/fill", json={"domain": "github.com/login"})
 
             # Should be called twice: once for username, once for password.
             assert mock_eval.call_count == 2
@@ -261,13 +241,9 @@ class TestSuccessfulFill:
             ) as mock_eval,
         ):
             mock_ws.return_value = "ws://vito:9222/devtools/page/123"
-            mock_eval.return_value = {
-                "result": {"result": {"value": {"found": True}}}
-            }
+            mock_eval.return_value = {"result": {"result": {"value": {"found": True}}}}
 
-            client.post(
-                "/browser/fill", json={"domain": "github.com/login"}
-            )
+            client.post("/browser/fill", json={"domain": "github.com/login"})
 
             # Check that the JS expressions contain the right selectors.
             calls = mock_eval.call_args_list
