@@ -18,6 +18,8 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import RequestResponseEndpoint
 
 import cardea.proxies
+from cardea.proxies import browser as browser_module
+from cardea.proxies.generic import ConfigError, build_routers
 
 logging.basicConfig(
     level=logging.INFO,
@@ -71,6 +73,28 @@ for finder, name, _ in pkgutil.iter_modules(cardea.proxies.__path__):
         full_path = f"{prefix}/{ep.lstrip('/')}"
         _disabled_endpoints.add(full_path)
         logger.info("Endpoint disabled by config: %s", full_path)
+
+# ── Load config-driven generic services ──────────────────────────────────────
+_services_config = _config.get("services", {})
+if _services_config:
+    try:
+        _generic_routers = build_routers(_services_config)
+        for _router, _prefix, _tag in _generic_routers:
+            app.include_router(_router, prefix=_prefix, tags=[_tag])
+            loaded += 1
+    except ConfigError as exc:
+        logger.error("Invalid [services.*] config: %s", exc)
+        raise SystemExit(1) from exc
+
+# ── Load browser credential manager (if configured) ──────────────────────────
+_browser_config = _config.get("browser", {})
+if _browser_config:
+    browser_module.configure(_browser_config)
+    app.include_router(
+        browser_module.router, prefix=browser_module.PREFIX, tags=[browser_module.TAG]
+    )
+    logger.info("Browser credential manager enabled (prefix=%s)", browser_module.PREFIX)
+    loaded += 1
 
 if not loaded:
     logger.warning("No modules enabled — Cardea is running but won't proxy anything.")
