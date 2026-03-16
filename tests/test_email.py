@@ -115,7 +115,7 @@ def _mock_smtp() -> MagicMock:
 # ── Credential checks ────────────────────────────────────────────────────────
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 def test_missing_password_returns_503(_mock_cfg):
     """Missing cardea_email_password secret returns 503."""
     response = client.get("/email/messages")
@@ -124,16 +124,14 @@ def test_missing_password_returns_503(_mock_cfg):
 
 
 def test_missing_config_returns_503():
-    """Missing config keys in [email] section returns 503."""
-    # _load_email_config validates required keys and raises 503 when any are missing.
+    """Missing or incomplete [email] config returns 503."""
     from fastapi import HTTPException
 
     with patch(
-        "cardea.proxies.email._load_email_config",
+        "cardea.proxies.email._get_email_config",
         side_effect=HTTPException(
             status_code=503,
-            detail="Email configuration incomplete in config.toml [email] section. "
-            "Missing keys: address, imap_server, smtp_server",
+            detail="Email module is not configured (check config.toml [email] section).",
         ),
     ):
         with patch.dict("os.environ", CRED_ENV):
@@ -145,7 +143,7 @@ def test_missing_config_returns_503():
 # ── IMAP connection failure ──────────────────────────────────────────────────
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_imap_connection_failure_returns_502(mock_imap_cls, _mock_cfg):
     """IMAP connection error returns 502."""
@@ -159,7 +157,7 @@ def test_imap_connection_failure_returns_502(mock_imap_cls, _mock_cfg):
 # ── GET /email/messages ──────────────────────────────────────────────────────
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_list_messages_returns_parsed_fields(mock_imap_cls, _mock_cfg):
     """GET /email/messages returns id, subject, from, date, snippet."""
@@ -191,7 +189,7 @@ def test_list_messages_returns_parsed_fields(mock_imap_cls, _mock_cfg):
     assert msg["date"] == "Mon, 1 Jan 2024 12:00:00 +0000"
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_list_messages_reversed_fetch_order(mock_imap_cls, _mock_cfg):
     """GET /email/messages works when IMAP returns TEXT before HEADER."""
@@ -224,7 +222,7 @@ def test_list_messages_reversed_fetch_order(mock_imap_cls, _mock_cfg):
     assert msg["snippet"] == "Body preview text"
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_list_messages_empty_inbox(mock_imap_cls, _mock_cfg):
     """Empty SEARCH result returns an empty list."""
@@ -238,7 +236,7 @@ def test_list_messages_empty_inbox(mock_imap_cls, _mock_cfg):
     assert response.json() == []
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_list_messages_respects_max(mock_imap_cls, _mock_cfg):
     """Only the most recent *max* messages are returned."""
@@ -274,7 +272,7 @@ def test_list_messages_respects_max(mock_imap_cls, _mock_cfg):
 # ── GET /email/messages/{id} ────────────────────────────────────────────────
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_get_message_returns_full_message(mock_imap_cls, _mock_cfg):
     """GET /email/messages/{id} returns all fields and decoded body."""
@@ -301,7 +299,7 @@ def test_get_message_returns_full_message(mock_imap_cls, _mock_cfg):
     assert data["body"] == "Full body content."
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_get_message_marks_as_read(mock_imap_cls, _mock_cfg):
     """GET /email/messages/{id} calls STORE +FLAGS \\Seen."""
@@ -320,7 +318,7 @@ def test_get_message_marks_as_read(mock_imap_cls, _mock_cfg):
     assert store_calls[0].args[3] == "(\\Seen)"
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_get_message_not_found_returns_404(mock_imap_cls, _mock_cfg):
     """Fetching a nonexistent UID returns 404."""
@@ -336,7 +334,7 @@ def test_get_message_not_found_returns_404(mock_imap_cls, _mock_cfg):
 # ── POST /email/send ─────────────────────────────────────────────────────────
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.smtplib.SMTP")
 def test_send_email_calls_smtp(mock_smtp_cls, _mock_cfg):
     """POST /email/send connects via SMTP with STARTTLS and sends."""
@@ -373,7 +371,7 @@ def test_send_email_calls_smtp(mock_smtp_cls, _mock_cfg):
     assert msg["From"] == "test@example.com"
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.smtplib.SMTP")
 def test_send_email_with_cc_and_bcc(mock_smtp_cls, _mock_cfg):
     """CC and BCC addresses are included in recipients; BCC is stripped from headers."""
@@ -405,7 +403,7 @@ def test_send_email_with_cc_and_bcc(mock_smtp_cls, _mock_cfg):
     assert msg["Cc"] == "cc@example.com"
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.smtplib.SMTP")
 def test_send_email_smtp_failure_returns_502(mock_smtp_cls, _mock_cfg):
     """SMTP connection/send failure returns 502."""
@@ -428,7 +426,7 @@ def test_send_email_smtp_failure_returns_502(mock_smtp_cls, _mock_cfg):
 # ── POST /email/reply/{message_id} ──────────────────────────────────────────
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.smtplib.SMTP")
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_reply_sets_in_reply_to_and_references(mock_imap_cls, mock_smtp_cls, _mock_cfg):
@@ -461,7 +459,7 @@ def test_reply_sets_in_reply_to_and_references(mock_imap_cls, mock_smtp_cls, _mo
     assert msg["References"] == "<original@example.com>"
 
 
-@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email._get_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_reply_original_not_found_returns_404(mock_imap_cls, _mock_cfg):
     """Replying to a nonexistent message returns 404."""

@@ -50,25 +50,40 @@ CONFIG_PATH = Path(__file__).resolve().parent.parent.parent.parent / "config.tom
 # -- Configuration -----------------------------------------------------------
 
 
-def _load_email_config() -> dict[str, str]:
-    """Return the ``[email]`` section from config.toml, or raise 503."""
+def _load_email_config() -> dict[str, str] | None:
+    """Parse the ``[email]`` section from config.toml.
+
+    Called once at module load time.  Returns the config dict, or ``None``
+    if the file is missing or the required keys are incomplete.
+    """
     if not CONFIG_PATH.exists():
-        raise HTTPException(
-            status_code=503,
-            detail="config.toml not found -- email module is not configured.",
-        )
+        logger.warning("config.toml not found -- email module is not configured.")
+        return None
     with open(CONFIG_PATH, "rb") as f:
         section: dict[str, str] = tomllib.load(f).get("email", {})
     missing = [k for k in ("address", "imap_server", "smtp_server") if k not in section]
     if missing:
+        logger.warning(
+            "Email configuration incomplete in config.toml [email] section. "
+            "Missing keys: %s",
+            ", ".join(missing),
+        )
+        return None
+    return section
+
+
+# Cached at module load time -- never re-read from disk.
+_email_config = _load_email_config()
+
+
+def _get_email_config() -> dict[str, str]:
+    """Return the cached email config, or raise 503 if unavailable."""
+    if _email_config is None:
         raise HTTPException(
             status_code=503,
-            detail=(
-                "Email configuration incomplete in config.toml [email] section. "
-                f"Missing keys: {', '.join(missing)}"
-            ),
+            detail="Email module is not configured (check config.toml [email] section).",
         )
-    return section
+    return _email_config
 
 
 def _get_password() -> str:
@@ -186,7 +201,7 @@ async def list_messages(q: str = "", max: int = 10) -> list[dict[str, Any]]:
     The *q* parameter accepts raw IMAP SEARCH syntax, e.g.
     ``FROM "sender" UNSEEN SUBJECT "test"``.  Defaults to ``ALL``.
     """
-    cfg = _load_email_config()
+    cfg = _get_email_config()
     password = _get_password()
     conn = _imap_connect(cfg, password)
     try:
@@ -255,7 +270,7 @@ async def list_messages(q: str = "", max: int = 10) -> list[dict[str, Any]]:
 @router.get("/messages/{message_id}")
 async def get_message(message_id: str) -> dict[str, Any]:
     """Fetch a full message by IMAP UID and mark it as read."""
-    cfg = _load_email_config()
+    cfg = _get_email_config()
     password = _get_password()
     conn = _imap_connect(cfg, password)
     try:
@@ -304,7 +319,7 @@ class SendRequest(BaseModel):
 @router.post("/send")
 async def send_email(req: SendRequest) -> dict[str, str]:
     """Send a new email via SMTP."""
-    cfg = _load_email_config()
+    cfg = _get_email_config()
     password = _get_password()
 
     msg = MIMEText(req.body, "plain", "utf-8")
@@ -336,7 +351,7 @@ async def reply_email(message_id: str, req: ReplyRequest) -> dict[str, str]:
     Fetches the original via IMAP to extract its Message-ID and References
     headers, then sends a reply with ``In-Reply-To`` and ``References`` set.
     """
-    cfg = _load_email_config()
+    cfg = _get_email_config()
     password = _get_password()
 
     # Fetch original to get its Message-ID and References headers.
