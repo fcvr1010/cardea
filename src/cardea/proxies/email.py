@@ -49,6 +49,8 @@ CONFIG_PATH = Path(__file__).resolve().parent.parent.parent.parent / "config.tom
 
 # -- Configuration -----------------------------------------------------------
 
+_email_config: dict[str, str] | None = None
+
 
 def _load_email_config() -> dict[str, str]:
     """Return the ``[email]`` section from config.toml.
@@ -73,7 +75,8 @@ def _load_email_config() -> dict[str, str]:
                 f"Missing keys: {', '.join(missing)}"
             ),
         )
-    return section
+    _email_config = section
+    return _email_config
 
 
 def _get_password() -> str:
