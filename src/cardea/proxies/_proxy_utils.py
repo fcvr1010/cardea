@@ -66,7 +66,11 @@ async def streaming_proxy(
         headers=headers,
         content=request.stream(),
     )
-    upstream_response = await client.send(upstream_request, stream=True)
+    try:
+        upstream_response = await client.send(upstream_request, stream=True)
+    except Exception:
+        await client.aclose()
+        raise
 
     response_headers = {
         k: v for k, v in upstream_response.headers.items() if k.lower() not in blocked

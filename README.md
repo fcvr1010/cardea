@@ -57,6 +57,65 @@ podman run --secret cardea_github_token -v ./config.toml:/app/config.toml:ro -p 
 
 Mount your `config.toml` into the container at `/app/config.toml`.
 
+## Browser credential manager
+
+Cardea can auto-fill login forms in a remote Chromium instance via the
+Chrome DevTools Protocol (CDP), so the AI agent never sees the actual
+credentials.
+
+This is useful when an agent controls a browser (e.g. for web scraping
+or testing) and needs to log in to a site. Instead of passing credentials
+to the agent, Cardea fills the form fields directly in the browser.
+
+### How it works
+
+1. The agent sends `POST /browser/fill {"domain": "github.com"}`.
+2. Cardea looks up the matching site in `[browser.sites.*]`.
+3. Loads the credential from Podman/Docker secrets.
+4. Connects to Chromium via CDP and fills each configured form field.
+5. Returns `{"status": "filled", "fields_filled": N}`.
+
+### Configuration
+
+Add a `[browser]` section and one `[browser.sites.<name>]` block per
+site to `config.toml`:
+
+```toml
+[browser]
+cdp_endpoint = "ws://vito:9222"
+
+[browser.sites.github]
+url_pattern = "github.com/login"
+secret = "browser_github"
+fields = [
+  { selector = "#login_field", key = "username" },
+  { selector = "#password", key = "password" },
+]
+```
+
+| Key | Description |
+|---|---|
+| `cdp_endpoint` | WebSocket URL of the Chromium CDP debugging port |
+| `url_pattern` | Substring matched against the domain sent by the caller |
+| `secret` | Name of the Podman/Docker secret containing the credentials |
+| `fields` | List of `{selector, key}` pairs mapping CSS selectors to keys in the secret JSON |
+
+The secret must be a JSON object whose keys match the `key` values in
+`fields`:
+
+```json
+{"username": "my-user", "password": "my-pass"}
+```
+
+Create the secret and restart Cardea:
+
+```bash
+echo -n '{"username":"user","password":"pass"}' | podman secret create browser_github -
+```
+
+The module is loaded automatically when a `[browser]` section is present
+in `config.toml` -- no entry in `[modules]` is needed.
+
 ## Contributing
 
 Contributions from coding agents are welcome too. Respecting the architecture is mandatory.
