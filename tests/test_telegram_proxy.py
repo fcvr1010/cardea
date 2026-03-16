@@ -67,7 +67,7 @@ def token_env():
         yield
 
 
-@patch("cardea.proxies.telegram.httpx.AsyncClient")
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
 def test_get_forwarded_to_upstream(mock_client_cls, token_env):
     """GET /telegram/botX/getMe should be forwarded to the real Telegram URL."""
     fake_resp = _fake_upstream_response()
@@ -81,7 +81,7 @@ def test_get_forwarded_to_upstream(mock_client_cls, token_env):
     assert BOT_ALIAS not in call_kwargs.kwargs["url"]
 
 
-@patch("cardea.proxies.telegram.httpx.AsyncClient")
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
 def test_query_string_preserved(mock_client_cls, token_env):
     """Query parameters must be forwarded verbatim to upstream."""
     fake_resp = _fake_upstream_response()
@@ -94,7 +94,7 @@ def test_query_string_preserved(mock_client_cls, token_env):
     assert "text=hello" in call_kwargs.kwargs["url"]
 
 
-@patch("cardea.proxies.telegram.httpx.AsyncClient")
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
 def test_post_forwarded(mock_client_cls, token_env):
     """POST requests (e.g. sendMessage via JSON body) are forwarded correctly."""
     fake_resp = _fake_upstream_response(body=b'{"ok":true,"result":{"message_id":1}}')
@@ -110,7 +110,7 @@ def test_post_forwarded(mock_client_cls, token_env):
     assert call_kwargs.kwargs["method"] == "POST"
 
 
-@patch("cardea.proxies.telegram.httpx.AsyncClient")
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
 def test_upstream_error_propagated(mock_client_cls, token_env):
     """Non-200 status codes from Telegram are forwarded as-is."""
     fake_resp = _fake_upstream_response(
@@ -122,7 +122,7 @@ def test_upstream_error_propagated(mock_client_cls, token_env):
     assert response.status_code == 400
 
 
-@patch("cardea.proxies.telegram.httpx.AsyncClient")
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
 def test_bot_alias_case_insensitive_cred(mock_client_cls):
     """Alias lookup is case-insensitive: env var key is always uppercased."""
     fake_resp = _fake_upstream_response()
@@ -135,7 +135,7 @@ def test_bot_alias_case_insensitive_cred(mock_client_cls):
     assert response.status_code == 200
 
 
-@patch("cardea.proxies.telegram.httpx.AsyncClient")
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
 def test_client_closed_after_stream(mock_client_cls, token_env):
     """The httpx client and response must be closed after the body is consumed."""
     fake_resp = _fake_upstream_response()
@@ -158,7 +158,7 @@ def test_file_missing_token_returns_503():
     assert "cardea_telegram_token_for_bot_unknown" in response.json()["detail"]
 
 
-@patch("cardea.proxies.telegram.httpx.AsyncClient")
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
 def test_file_get_forwarded_to_upstream(mock_client_cls, token_env):
     """GET /telegram/file/botX/path is forwarded to the real Telegram file URL."""
     fake_resp = _fake_upstream_response(body=b"file-content")
@@ -173,7 +173,7 @@ def test_file_get_forwarded_to_upstream(mock_client_cls, token_env):
     assert BOT_ALIAS not in call_kwargs.kwargs["url"]
 
 
-@patch("cardea.proxies.telegram.httpx.AsyncClient")
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
 def test_file_query_string_preserved(mock_client_cls, token_env):
     """Query parameters on file download are forwarded."""
     fake_resp = _fake_upstream_response()
@@ -185,7 +185,7 @@ def test_file_query_string_preserved(mock_client_cls, token_env):
     assert "size=large" in call_kwargs.kwargs["url"]
 
 
-@patch("cardea.proxies.telegram.httpx.AsyncClient")
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
 def test_file_upstream_error_propagated(mock_client_cls, token_env):
     """Non-200 file download responses are forwarded as-is."""
     fake_resp = _fake_upstream_response(status=404, body=b"Not Found")
@@ -195,7 +195,7 @@ def test_file_upstream_error_propagated(mock_client_cls, token_env):
     assert response.status_code == 404
 
 
-@patch("cardea.proxies.telegram.httpx.AsyncClient")
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
 def test_file_client_closed_after_stream(mock_client_cls, token_env):
     """The httpx client and response are closed after file body is consumed."""
     fake_resp = _fake_upstream_response()

@@ -256,7 +256,7 @@ class TestPrefixOrdering:
 
 class TestBearerAuth:
     @patch.dict("os.environ", {"my_token": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_bearer_injects_header(self, mock_client_cls):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -280,7 +280,7 @@ class TestBearerAuth:
         assert headers.get("Authorization") == f"Bearer {FAKE_TOKEN}"
 
     @patch.dict("os.environ", {"my_token": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_bearer_upstream_url(self, mock_client_cls):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -308,7 +308,7 @@ class TestBearerAuth:
 
 class TestBasicAuth:
     @patch.dict("os.environ", {"my_pass": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_basic_injects_header(self, mock_client_cls):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -344,7 +344,7 @@ class TestBasicAuth:
 
 class TestHeaderAuth:
     @patch.dict("os.environ", {"my_key": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_header_injects_custom_header(self, mock_client_cls):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -376,7 +376,7 @@ class TestHeaderAuth:
 
 class TestQueryAuth:
     @patch.dict("os.environ", {"my_key": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_query_appends_param(self, mock_client_cls):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -407,7 +407,7 @@ class TestQueryAuth:
 
 
 class TestNoAuth:
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_none_auth_no_header(self, mock_client_cls):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -435,7 +435,7 @@ class TestNoAuth:
 
 class TestQueryString:
     @patch.dict("os.environ", {"tok": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_query_string_forwarded(self, mock_client_cls):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -459,7 +459,7 @@ class TestQueryString:
         assert "page=2" in url
 
     @patch.dict("os.environ", {"tok": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_query_auth_combined_with_existing_qs(self, mock_client_cls):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -488,7 +488,7 @@ class TestQueryString:
 
 class TestHeaderStripping:
     @patch.dict("os.environ", {"tok": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_authorization_header_stripped(self, mock_client_cls):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -514,7 +514,7 @@ class TestHeaderStripping:
         assert headers.get("Authorization") == f"Bearer {FAKE_TOKEN}"
 
     @patch.dict("os.environ", {"tok": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_hop_by_hop_headers_stripped(self, mock_client_cls):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -563,7 +563,7 @@ class TestErrorHandling:
 class TestHttpMethods:
     @pytest.mark.parametrize("method", ["GET", "POST", "PUT", "PATCH", "DELETE"])
     @patch.dict("os.environ", {"tok": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_all_methods_forwarded(self, mock_client_cls, method):
         fake_resp = _fake_upstream_response()
         mock_client = _make_mock_client(fake_resp)
@@ -594,7 +594,7 @@ class TestHttpMethods:
 
 class TestStreaming:
     @patch.dict("os.environ", {"tok": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_response_body_streamed(self, mock_client_cls):
         body = b"chunk1chunk2chunk3"
         fake_resp = _fake_upstream_response(body=body)
@@ -615,7 +615,7 @@ class TestStreaming:
         assert response.content == body
 
     @patch.dict("os.environ", {"tok": FAKE_TOKEN})
-    @patch("cardea.proxies.generic.httpx.AsyncClient")
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
     def test_upstream_status_code_preserved(self, mock_client_cls):
         fake_resp = _fake_upstream_response(status=404, body=b'{"message":"Not Found"}')
         mock_client = _make_mock_client(fake_resp)

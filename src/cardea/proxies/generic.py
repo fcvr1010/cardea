@@ -21,33 +21,15 @@ from __future__ import annotations
 
 import base64
 import logging
-from collections.abc import AsyncIterator
 from typing import Any
 
-import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from cardea.proxies._proxy_utils import HOP_BY_HOP, proxy, strip_headers
 from cardea.secrets import get_secret
 
 logger = logging.getLogger(__name__)
-
-# Headers that must not be forwarded between client ↔ upstream.
-_HOP_BY_HOP = frozenset(
-    [
-        "connection",
-        "keep-alive",
-        "proxy-authenticate",
-        "proxy-authorization",
-        "te",
-        "trailers",
-        "transfer-encoding",
-        "upgrade",
-        "host",
-        "content-length",
-        "authorization",
-    ]
-)
 
 _VALID_AUTH_TYPES = frozenset(["bearer", "basic", "header", "query", "none"])
 
@@ -98,10 +80,6 @@ def validate_service(name: str, cfg: dict[str, Any]) -> None:
 # ── Proxy helpers ─────────────────────────────────────────────────────────────
 
 
-def _strip_headers(request: Request) -> dict[str, str]:
-    return {k: v for k, v in request.headers.items() if k.lower() not in _HOP_BY_HOP}
-
-
 def _inject_auth(headers: dict[str, str], auth: dict[str, Any], secret: str) -> str:
     """Inject credentials into *headers* (mutated in place).
 
@@ -122,42 +100,6 @@ def _inject_auth(headers: dict[str, str], auth: dict[str, Any], secret: str) -> 
     # auth_type == "none" → nothing to do
 
     return ""
-
-
-async def _proxy(
-    request: Request,
-    upstream_url: str,
-    headers: dict[str, str],
-) -> StreamingResponse:
-    """Forward *request* to *upstream_url* and stream the response back."""
-    client = httpx.AsyncClient(follow_redirects=True, timeout=None)
-    upstream_request = client.build_request(
-        method=request.method,
-        url=upstream_url,
-        headers=headers,
-        content=request.stream(),
-    )
-    upstream_response = await client.send(upstream_request, stream=True)
-
-    response_headers = {
-        k: v
-        for k, v in upstream_response.headers.items()
-        if k.lower() not in _HOP_BY_HOP
-    }
-
-    async def _body() -> AsyncIterator[bytes]:
-        try:
-            async for chunk in upstream_response.aiter_raw():
-                yield chunk
-        finally:
-            await upstream_response.aclose()
-            await client.aclose()
-
-    return StreamingResponse(
-        content=_body(),
-        status_code=upstream_response.status_code,
-        headers=response_headers,
-    )
 
 
 # ── Router factory ────────────────────────────────────────────────────────────
@@ -190,7 +132,7 @@ def _make_handler(service_name: str, upstream: str, auth: dict[str, Any]) -> Any
         if request.url.query:
             query_parts.append(str(request.url.query))
 
-        headers = _strip_headers(request)
+        headers = strip_headers(request, HOP_BY_HOP)
         extra_qs = _inject_auth(headers, auth, secret)
         if extra_qs:
             query_parts.append(extra_qs)
@@ -206,7 +148,7 @@ def _make_handler(service_name: str, upstream: str, auth: dict[str, Any]) -> Any
             upstream_url.split("?")[0],
         )
 
-        return await _proxy(request, upstream_url, headers)
+        return await proxy(request, upstream_url, headers, HOP_BY_HOP)
 
     # Give the handler a unique name for FastAPI's operationId.
     _handler.__name__ = f"generic_proxy_{service_name.replace('-', '_')}"

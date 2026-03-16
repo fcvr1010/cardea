@@ -12,12 +12,11 @@ cardea_telegram_token_for_bot_<alias> (lowercased).
 """
 
 import logging
-from collections.abc import AsyncIterator
 
-import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from cardea.proxies._proxy_utils import HOP_BY_HOP_KEEP_AUTH, proxy, strip_headers
 from cardea.secrets import get_secret
 
 logger = logging.getLogger(__name__)
@@ -26,21 +25,6 @@ PREFIX = "/telegram"
 TAG = "Telegram"
 
 TELEGRAM_BASE = "https://api.telegram.org"
-
-_HOP_BY_HOP = frozenset(
-    [
-        "connection",
-        "keep-alive",
-        "proxy-authenticate",
-        "proxy-authorization",
-        "te",
-        "trailers",
-        "transfer-encoding",
-        "upgrade",
-        "host",
-        "content-length",
-    ]
-)
 
 router = APIRouter()
 
@@ -58,47 +42,6 @@ def _resolve_token(bot_alias: str) -> str:
                 f"Provide {secret_name} as a secret or environment variable."
             ),
         )
-
-
-def _upstream_headers(request: Request) -> dict[str, str]:
-    """Strip hop-by-hop headers and return a clean dict for the upstream call."""
-    return {k: v for k, v in request.headers.items() if k.lower() not in _HOP_BY_HOP}
-
-
-async def _proxy(
-    request: Request,
-    upstream_url: str,
-    headers: dict[str, str],
-) -> StreamingResponse:
-    """Forward *request* to *upstream_url* and stream the response back."""
-    client = httpx.AsyncClient(follow_redirects=True, timeout=None)
-    upstream_request = client.build_request(
-        method=request.method,
-        url=upstream_url,
-        headers=headers,
-        content=request.stream(),
-    )
-    upstream_response = await client.send(upstream_request, stream=True)
-
-    response_headers = {
-        k: v
-        for k, v in upstream_response.headers.items()
-        if k.lower() not in _HOP_BY_HOP
-    }
-
-    async def _body() -> AsyncIterator[bytes]:
-        try:
-            async for chunk in upstream_response.aiter_raw():
-                yield chunk
-        finally:
-            await upstream_response.aclose()
-            await client.aclose()
-
-    return StreamingResponse(
-        content=_body(),
-        status_code=upstream_response.status_code,
-        headers=response_headers,
-    )
 
 
 @router.api_route(
@@ -122,7 +65,8 @@ async def telegram_proxy(
         path,
     )
 
-    return await _proxy(request, upstream_url, _upstream_headers(request))
+    headers = strip_headers(request, HOP_BY_HOP_KEEP_AUTH)
+    return await proxy(request, upstream_url, headers, HOP_BY_HOP_KEEP_AUTH)
 
 
 @router.api_route(
@@ -146,4 +90,5 @@ async def telegram_file_proxy(
         path,
     )
 
-    return await _proxy(request, upstream_url, _upstream_headers(request))
+    headers = strip_headers(request, HOP_BY_HOP_KEEP_AUTH)
+    return await proxy(request, upstream_url, headers, HOP_BY_HOP_KEEP_AUTH)
