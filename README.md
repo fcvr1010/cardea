@@ -96,7 +96,7 @@ fields = [
 | Key | Description |
 |---|---|
 | `cdp_endpoint` | WebSocket URL of the Chromium CDP debugging port |
-| `url_pattern` | Substring matched against the domain sent by the caller |
+| `url_pattern` | Substring matched against the `domain` field in the `POST /browser/fill` request body |
 | `secret` | Name of the Podman/Docker secret containing the credentials |
 | `fields` | List of `{selector, key}` pairs mapping CSS selectors to keys in the secret JSON |
 

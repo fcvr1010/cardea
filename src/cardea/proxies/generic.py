@@ -153,9 +153,7 @@ def _make_handler(service_name: str, upstream: str, auth: dict[str, Any]) -> Any
             upstream_url.split("?")[0],
         )
 
-        return await streaming_proxy(
-            request, upstream_url, headers, extra_hop_by_hop=_EXTRA_HOP_BY_HOP
-        )
+        return await streaming_proxy(request, upstream_url, headers)
 
     # Give the handler a unique name for FastAPI's operationId.
     _handler.__name__ = f"generic_proxy_{service_name.replace('-', '_')}"

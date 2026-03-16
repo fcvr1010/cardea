@@ -7,6 +7,8 @@ We mock the upstream httpx call so no real network traffic is made.
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
+
 from fastapi.testclient import TestClient
 from cardea.app import app
 
@@ -205,4 +207,20 @@ def test_file_client_closed_after_stream(mock_client_cls, token_env):
     client.get(f"/telegram/file/bot{BOT_ALIAS}/documents/file.pdf")
 
     fake_resp.aclose.assert_awaited_once()
+    mock_client.aclose.assert_awaited_once()
+
+
+@patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
+def test_client_closed_on_send_error(mock_client_cls, token_env):
+    """client.aclose() must be called when client.send() raises an exception."""
+    mock_client = MagicMock()
+    mock_client.build_request.return_value = MagicMock()
+    mock_client.send = AsyncMock(side_effect=httpx.ConnectError("connection refused"))
+    mock_client.aclose = AsyncMock()
+    mock_client_cls.return_value = mock_client
+
+    safe_client = TestClient(app, raise_server_exceptions=False)
+    response = safe_client.get(f"/telegram/bot{BOT_ALIAS}/getMe")
+    assert response.status_code == 500
+
     mock_client.aclose.assert_awaited_once()

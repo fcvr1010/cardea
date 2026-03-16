@@ -633,3 +633,37 @@ class TestStreaming:
         client = TestClient(app)
         response = client.get("/api/missing")
         assert response.status_code == 404
+
+
+# ── Client leak on error ─────────────────────────────────────────────────────
+
+
+class TestClientLeak:
+    @patch.dict("os.environ", {"tok": FAKE_TOKEN})
+    @patch("cardea.proxies._proxy_utils.httpx.AsyncClient")
+    def test_client_closed_on_send_error(self, mock_client_cls):
+        """client.aclose() must be called when client.send() raises an exception."""
+        import httpx
+
+        mock_client = MagicMock()
+        mock_client.build_request.return_value = MagicMock()
+        mock_client.send = AsyncMock(
+            side_effect=httpx.ConnectError("connection refused")
+        )
+        mock_client.aclose = AsyncMock()
+        mock_client_cls.return_value = mock_client
+
+        app = _build_test_app(
+            {
+                "api": {
+                    "prefix": "/api",
+                    "upstream": "https://api.example.com",
+                    "auth": {"type": "bearer", "secret": "tok"},
+                },
+            }
+        )
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.get("/api/resource")
+        assert response.status_code == 500
+
+        mock_client.aclose.assert_awaited_once()

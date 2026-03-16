@@ -4,7 +4,7 @@ Shared streaming-proxy logic used by both the generic and Telegram proxies.
 The ``streaming_proxy`` function forwards an incoming FastAPI ``Request`` to an
 upstream URL and streams the response body back chunk-by-chunk.
 
-``HOP_BY_HOP`` is the base set of hop-by-hop headers that must not be
+``_HOP_BY_HOP`` is the base set of hop-by-hop headers that must not be
 forwarded.  Callers that need to suppress additional headers (e.g.
 ``"authorization"`` in the generic proxy) pass them via *extra_hop_by_hop*.
 """
@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse
 
 # Headers that must not be forwarded between client and upstream.
 # Individual proxies can extend this set via the *extra_hop_by_hop* parameter.
-HOP_BY_HOP: frozenset[str] = frozenset(
+_HOP_BY_HOP: frozenset[str] = frozenset(
     [
         "connection",
         "keep-alive",
@@ -41,7 +41,7 @@ def strip_headers(
     extra_hop_by_hop: frozenset[str] = frozenset(),
 ) -> dict[str, str]:
     """Return request headers with hop-by-hop entries removed."""
-    blocked = HOP_BY_HOP | extra_hop_by_hop
+    blocked = _HOP_BY_HOP | extra_hop_by_hop
     return {k: v for k, v in request.headers.items() if k.lower() not in blocked}
 
 
@@ -55,9 +55,9 @@ async def streaming_proxy(
     """Forward *request* to *upstream_url* and stream the response back.
 
     *extra_hop_by_hop* lists additional header names (lowercase) to strip from
-    the **response** beyond the base :data:`HOP_BY_HOP` set.
+    the **response** beyond the base :data:`_HOP_BY_HOP` set.
     """
-    blocked = HOP_BY_HOP | extra_hop_by_hop
+    blocked = _HOP_BY_HOP | extra_hop_by_hop
 
     client = httpx.AsyncClient(follow_redirects=True, timeout=None)
     upstream_request = client.build_request(
