@@ -34,7 +34,9 @@ auth = { type = "basic", username = "x-access-token", secret = "cardea_github_to
 
 def pytest_configure(config):
     """Always write the test config, backing up any existing one."""
-    config._cardea_original_config = CONFIG_PATH.read_text() if CONFIG_PATH.exists() else None
+    config._cardea_original_config = (
+        CONFIG_PATH.read_text() if CONFIG_PATH.exists() else None
+    )
     CONFIG_PATH.write_text(_TEST_CONFIG)
 
 
