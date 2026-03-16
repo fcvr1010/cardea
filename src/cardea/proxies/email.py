@@ -49,9 +49,20 @@ CONFIG_PATH = Path(__file__).resolve().parent.parent.parent.parent / "config.tom
 
 # -- Configuration -----------------------------------------------------------
 
+_email_config: dict[str, str] | None = None
+
 
 def _load_email_config() -> dict[str, str]:
-    """Return the ``[email]`` section from config.toml, or raise 503."""
+    """Return the ``[email]`` section from config.toml, or raise 503.
+
+    The config is read from disk on the first call and cached for all
+    subsequent calls.  Cardea reads all configuration at startup and has no
+    hot-reload mechanism, so re-reading per request is unnecessary.
+    """
+    global _email_config
+    if _email_config is not None:
+        return _email_config
+
     if not CONFIG_PATH.exists():
         raise HTTPException(
             status_code=503,
@@ -68,7 +79,8 @@ def _load_email_config() -> dict[str, str]:
                 f"Missing keys: {', '.join(missing)}"
             ),
         )
-    return section
+    _email_config = section
+    return _email_config
 
 
 def _get_password() -> str:

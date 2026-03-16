@@ -68,6 +68,9 @@ for finder, name, _ in pkgutil.iter_modules(cardea.proxies.__path__):
     loaded += 1
 
     # Collect per-module disabled endpoints.
+    # NOTE: disabled_endpoints only applies to custom proxy modules, not to
+    # generic config-driven services ([services.*]).  Generic services are
+    # catch-all proxies where exact path matching is impractical.
     module_section = _config.get(name, {})
     for ep in module_section.get("disabled_endpoints", []):
         full_path = f"{prefix}/{ep.lstrip('/')}"
