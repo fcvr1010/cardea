@@ -66,7 +66,9 @@ async def telegram_proxy(
     )
 
     headers = strip_headers(request, HOP_BY_HOP_KEEP_AUTH)
-    return await proxy(request, upstream_url, headers, HOP_BY_HOP_KEEP_AUTH)
+    return await proxy(
+        request, upstream_url, headers, response_hop_by_hop=HOP_BY_HOP_KEEP_AUTH
+    )
 
 
 @router.api_route(
@@ -91,4 +93,6 @@ async def telegram_file_proxy(
     )
 
     headers = strip_headers(request, HOP_BY_HOP_KEEP_AUTH)
-    return await proxy(request, upstream_url, headers, HOP_BY_HOP_KEEP_AUTH)
+    return await proxy(
+        request, upstream_url, headers, response_hop_by_hop=HOP_BY_HOP_KEEP_AUTH
+    )

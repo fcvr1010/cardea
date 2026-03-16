@@ -54,12 +54,17 @@ async def proxy(
     request: Request,
     upstream_url: str,
     headers: dict[str, str],
-    hop_by_hop: frozenset[str] = HOP_BY_HOP,
+    response_hop_by_hop: frozenset[str] = HOP_BY_HOP,
 ) -> StreamingResponse:
     """Forward *request* to *upstream_url* and stream the response back.
 
+    *response_hop_by_hop* controls which headers are stripped from the
+    upstream **response** before forwarding to the client.  (Request-side
+    header stripping is the caller's responsibility via :func:`strip_headers`.)
+
     If ``client.send()`` raises, the underlying ``httpx.AsyncClient`` is
-    closed immediately to prevent resource leaks.
+    closed immediately to prevent resource leaks.  ``BaseException`` is
+    caught so that ``asyncio.CancelledError`` also triggers cleanup.
     """
     client = httpx.AsyncClient(follow_redirects=True, timeout=None)
     upstream_request = client.build_request(
@@ -70,14 +75,14 @@ async def proxy(
     )
     try:
         upstream_response = await client.send(upstream_request, stream=True)
-    except Exception:
+    except BaseException:
         await client.aclose()
         raise
 
     response_headers = {
         k: v
         for k, v in upstream_response.headers.items()
-        if k.lower() not in hop_by_hop
+        if k.lower() not in response_hop_by_hop
     }
 
     async def _body() -> AsyncIterator[bytes]:
