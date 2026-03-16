@@ -51,7 +51,12 @@ CONFIG_PATH = Path(__file__).resolve().parent.parent.parent.parent / "config.tom
 
 
 def _load_email_config() -> dict[str, str]:
-    """Return the ``[email]`` section from config.toml, or raise 503."""
+    """Return the ``[email]`` section from config.toml.
+
+    NOTE: This function re-reads config.toml from disk on every call.  This is
+    intentional -- it enables hot-reload of email configuration without
+    restarting Cardea.  Do not add caching here.
+    """
     if not CONFIG_PATH.exists():
         raise HTTPException(
             status_code=503,
