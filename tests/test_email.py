@@ -544,3 +544,57 @@ def test_decode_header_value_encoded():
 
     encoded = "=?utf-8?B?" + base64.b64encode("Ciao".encode()).decode() + "?="
     assert _decode_header_value(encoded) == "Ciao"
+
+
+# ── _load_email_config unit tests ─────────────────────────────────────────────
+
+
+def test_load_email_config_missing_file(caplog):
+    """_load_email_config returns None and logs a warning when config.toml is absent."""
+    import logging
+
+    from cardea.proxies.email import _load_email_config
+
+    with patch("cardea.proxies.email.CONFIG_PATH") as mock_path:
+        mock_path.exists.return_value = False
+        with caplog.at_level(logging.WARNING, logger="cardea.proxies.email"):
+            result = _load_email_config()
+    assert result is None
+    assert any("config.toml not found" in msg for msg in caplog.messages)
+
+
+def test_load_email_config_missing_keys(tmp_path, caplog):
+    """_load_email_config returns None when required keys are missing from [email]."""
+    import logging
+
+    from cardea.proxies.email import _load_email_config
+
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[email]\naddress = "a@b.com"\n')
+
+    with patch("cardea.proxies.email.CONFIG_PATH", config_file):
+        with caplog.at_level(logging.WARNING, logger="cardea.proxies.email"):
+            result = _load_email_config()
+    assert result is None
+    assert any("Missing keys" in msg for msg in caplog.messages)
+
+
+def test_load_email_config_valid(tmp_path):
+    """_load_email_config returns the config dict when all keys are present."""
+    from cardea.proxies.email import _load_email_config
+
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(
+        "[email]\n"
+        'address = "a@b.com"\n'
+        'imap_server = "imap.b.com"\n'
+        'smtp_server = "smtp.b.com"\n'
+    )
+
+    with patch("cardea.proxies.email.CONFIG_PATH", config_file):
+        result = _load_email_config()
+    assert result == {
+        "address": "a@b.com",
+        "imap_server": "imap.b.com",
+        "smtp_server": "smtp.b.com",
+    }

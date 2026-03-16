@@ -10,6 +10,10 @@ Configuration (config.toml ``[email]`` section):
   imap_server  -- IMAP host   (e.g. ``imap.gmail.com``)
   smtp_server  -- SMTP host   (e.g. ``smtp.gmail.com``)
 
+The ``[email]`` config is read once at module load time and cached for the
+lifetime of the process.  Editing ``config.toml`` after startup has no effect;
+a Cardea restart is required for changes to take effect.
+
 Secret:
   cardea_email_password -- App Password (via ``cardea.secrets.get_secret``)
 
