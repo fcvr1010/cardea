@@ -1,4 +1,4 @@
-"""Create a config.toml with all modules enabled for testing."""
+"""Ensure tests always run against a known config.toml, never a real one."""
 
 from pathlib import Path
 
@@ -28,15 +28,17 @@ auth = { type = "basic", username = "x-access-token", secret = "cardea_github_to
 
 
 def pytest_configure(config):
-    """Write an all-enabled config.toml if one doesn't already exist."""
-    if not CONFIG_PATH.exists():
-        CONFIG_PATH.write_text(_TEST_CONFIG)
-        config._cardea_created_config = True
-    else:
-        config._cardea_created_config = False
+    """Always write the test config.toml, saving any pre-existing one."""
+    config._cardea_original_config = (
+        CONFIG_PATH.read_text() if CONFIG_PATH.exists() else None
+    )
+    CONFIG_PATH.write_text(_TEST_CONFIG)
 
 
 def pytest_unconfigure(config):
-    """Remove the config.toml we created, if any."""
-    if getattr(config, "_cardea_created_config", False) and CONFIG_PATH.exists():
+    """Restore the original config.toml, or remove ours if there was none."""
+    original = getattr(config, "_cardea_original_config", None)
+    if original is not None:
+        CONFIG_PATH.write_text(original)
+    elif CONFIG_PATH.exists():
         CONFIG_PATH.unlink()

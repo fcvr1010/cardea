@@ -84,6 +84,69 @@ For services requiring custom logic (OAuth2 token refresh, non-HTTP protocols,
 multi-tenant routing), create a Python module in `src/cardea/proxies/` with a
 router, PREFIX, and TAG.
 
+### Browser credential manager
+
+Cardea includes a CDP-based (Chrome DevTools Protocol) credential manager that
+can auto-fill login forms in a remote Chromium instance without the AI agent
+ever seeing the actual credentials. This is useful when an agent drives a
+browser (e.g. via Vito's browser tool) and needs to log in to a website.
+
+The browser module is loaded automatically when a `[browser]` section exists in
+`config.toml` -- it does not need an entry in `[modules]`.
+
+#### Configuration
+
+The `[browser]` section sets the CDP connection:
+
+| Key              | Description                                                     |
+|------------------|-----------------------------------------------------------------|
+| `cdp_endpoint`   | WebSocket URL of the Chromium CDP debugging port (e.g. `ws://vito:9222`) |
+
+Each `[browser.sites.<name>]` section defines a site whose login form Cardea
+can fill:
+
+| Key           | Description                                                      |
+|---------------|------------------------------------------------------------------|
+| `url_pattern` | Substring matched against the domain/URL passed by the caller    |
+| `secret`      | Name of the Podman/Docker secret containing credentials as JSON  |
+| `fields`      | Array of `{ selector, key }` objects (CSS selector + JSON key)   |
+
+The secret must be a JSON object whose keys match the `key` values in `fields`.
+For example, `{"username": "alice", "password": "s3cret"}`.
+
+#### Example
+
+```toml
+[browser]
+cdp_endpoint = "ws://vito:9222"
+
+[browser.sites.github]
+url_pattern = "github.com/login"
+secret = "browser_github"
+fields = [
+  { selector = "#login_field", key = "username" },
+  { selector = "#password", key = "password" },
+]
+```
+
+Then create the secret:
+
+```bash
+echo -n '{"username": "alice", "password": "s3cret"}' | podman secret create browser_github -
+```
+
+#### How it works
+
+1. The caller sends `POST /browser/fill` with `{"domain": "github.com/login"}`.
+2. Cardea matches the domain against `url_pattern` in the configured sites.
+3. Loads the credential JSON from the named secret.
+4. Connects to Chromium via CDP and fills each form field using
+   `Runtime.evaluate`, dispatching `input` and `change` events.
+5. Returns `{"status": "filled", "fields_filled": N}`.
+
+Vito's browser tool calls this endpoint automatically when it needs to log in
+to a configured site.
+
 ## Who's cardea
 
 In the Roman tradition, Cardea is a deity protecting households from harmful spirits entering through doors.
