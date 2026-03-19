@@ -6,7 +6,7 @@ App Password, replacing the Gmail OAuth2 flow and its refresh-token expiry
 headaches.
 
 Configuration (config.toml ``[email]`` section):
-  address      -- email address (e.g. ``vito.fclabs@gmail.com``)
+  address      -- email address (e.g. ``agent@example.com``)
   imap_server  -- IMAP host   (e.g. ``imap.gmail.com``)
   smtp_server  -- SMTP host   (e.g. ``smtp.gmail.com``)
 

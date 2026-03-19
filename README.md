@@ -89,7 +89,7 @@ router, PREFIX, and TAG.
 Cardea includes a CDP-based (Chrome DevTools Protocol) credential manager that
 can auto-fill login forms in a remote Chromium instance without the AI agent
 ever seeing the actual credentials. This is useful when an agent drives a
-browser (e.g. via Vito's browser tool) and needs to log in to a website.
+browser (e.g. via the agent's browser tool) and needs to log in to a website.
 
 The browser module is loaded automatically when a `[browser]` section exists in
 `config.toml` -- it does not need an entry in `[modules]`.
@@ -100,7 +100,7 @@ The `[browser]` section sets the CDP connection:
 
 | Key              | Description                                                     |
 |------------------|-----------------------------------------------------------------|
-| `cdp_endpoint`   | WebSocket URL of the Chromium CDP debugging port (e.g. `ws://vito:9222`) |
+| `cdp_endpoint`   | WebSocket URL of the Chromium CDP debugging port (e.g. `ws://localhost:9222`) |
 
 Each `[browser.sites.<name>]` section defines a site whose login form Cardea
 can fill:
@@ -118,7 +118,7 @@ For example, `{"username": "alice", "password": "s3cret"}`.
 
 ```toml
 [browser]
-cdp_endpoint = "ws://vito:9222"
+cdp_endpoint = "ws://localhost:9222"
 
 [browser.sites.github]
 url_pattern = "github.com/login"
@@ -144,7 +144,7 @@ echo -n '{"username": "alice", "password": "s3cret"}' | podman secret create bro
    `Runtime.evaluate`, dispatching `input` and `change` events.
 5. Returns `{"status": "filled", "fields_filled": N}`.
 
-Vito's browser tool calls this endpoint automatically when it needs to log in
+The agent's browser tool calls this endpoint automatically when it needs to log in
 to a configured site.
 
 ## Who's cardea

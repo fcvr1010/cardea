@@ -80,7 +80,7 @@ auth = { type = "basic", username = "x-access-token", secret = "cardea_github_to
 # Key names in "fields" must match keys in the secret JSON.
 
 # [browser]
-# cdp_endpoint = "ws://vito:9222"
+# cdp_endpoint = "ws://localhost:9222"
 #
 # [browser.sites.github]
 # url_pattern = "github.com/login"
