@@ -93,7 +93,7 @@ def _find_site(domain: str) -> tuple[str, dict[str, Any]]:
 
 async def _get_ws_url() -> str:
     """Discover the WebSocket debugger URL for the first browser tab."""
-    # The CDP endpoint is like "ws://vito:9222"; the HTTP JSON endpoint
+    # The CDP endpoint is like "ws://localhost:9222"; the HTTP JSON endpoint
     # uses the same host:port with the /json path.
     http_url = _cdp_endpoint.replace("ws://", "http://").replace("wss://", "https://")
     http_url = http_url.rstrip("/")

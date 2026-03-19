@@ -44,7 +44,7 @@ def _build_test_app(browser_config: dict[str, Any]) -> FastAPI:
 
 
 BROWSER_CONFIG = {
-    "cdp_endpoint": "ws://vito:9222",
+    "cdp_endpoint": "ws://localhost:9222",
     "sites": {
         "github": {
             "url_pattern": "github.com/login",
@@ -102,7 +102,7 @@ class TestMissingSecret:
         with patch.object(
             browser_module, "_get_ws_url", new_callable=AsyncMock
         ) as mock_ws:
-            mock_ws.return_value = "ws://vito:9222/devtools/page/123"
+            mock_ws.return_value = "ws://localhost:9222/devtools/page/123"
 
             response = client.post("/browser/fill", json={"domain": "github.com/login"})
             assert response.status_code == 503
@@ -121,7 +121,7 @@ class TestInvalidSecret:
         with patch.object(
             browser_module, "_get_ws_url", new_callable=AsyncMock
         ) as mock_ws:
-            mock_ws.return_value = "ws://vito:9222/devtools/page/123"
+            mock_ws.return_value = "ws://localhost:9222/devtools/page/123"
 
             response = client.post("/browser/fill", json={"domain": "github.com/login"})
             assert response.status_code == 500
@@ -171,7 +171,7 @@ class TestSelectorNotFound:
                 browser_module, "_cdp_evaluate", new_callable=AsyncMock
             ) as mock_eval,
         ):
-            mock_ws.return_value = "ws://vito:9222/devtools/page/123"
+            mock_ws.return_value = "ws://localhost:9222/devtools/page/123"
             mock_eval.return_value = {"result": {"result": {"value": {"found": False}}}}
 
             response = client.post("/browser/fill", json={"domain": "github.com/login"})
@@ -196,7 +196,7 @@ class TestSuccessfulFill:
                 browser_module, "_cdp_evaluate", new_callable=AsyncMock
             ) as mock_eval,
         ):
-            mock_ws.return_value = "ws://vito:9222/devtools/page/123"
+            mock_ws.return_value = "ws://localhost:9222/devtools/page/123"
             mock_eval.return_value = {"result": {"result": {"value": {"found": True}}}}
 
             response = client.post("/browser/fill", json={"domain": "github.com/login"})
@@ -219,7 +219,7 @@ class TestSuccessfulFill:
                 browser_module, "_cdp_evaluate", new_callable=AsyncMock
             ) as mock_eval,
         ):
-            mock_ws.return_value = "ws://vito:9222/devtools/page/123"
+            mock_ws.return_value = "ws://localhost:9222/devtools/page/123"
             mock_eval.return_value = {"result": {"result": {"value": {"found": True}}}}
 
             client.post("/browser/fill", json={"domain": "github.com/login"})
@@ -240,7 +240,7 @@ class TestSuccessfulFill:
                 browser_module, "_cdp_evaluate", new_callable=AsyncMock
             ) as mock_eval,
         ):
-            mock_ws.return_value = "ws://vito:9222/devtools/page/123"
+            mock_ws.return_value = "ws://localhost:9222/devtools/page/123"
             mock_eval.return_value = {"result": {"result": {"value": {"found": True}}}}
 
             client.post("/browser/fill", json={"domain": "github.com/login"})
