@@ -1,0 +1,12 @@
+.git/
+tests/
+*.md
+config.toml
+.pre-commit-config.yaml
+.github/
+.mypy_cache/
+__pycache__/
+.ruff_cache/
+.gitignore
+LICENSE
+.markdownlint.yaml
