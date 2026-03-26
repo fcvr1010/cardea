@@ -25,6 +25,60 @@ Through a separate local proxy that handles the credentials. That's Cardea.
 Cardea exposes local endpoints for, e.g., sending an email via gmail. The agent just calls the endpoint with
 no auth. Then Cardea injects the credentials and submits the actual request to the gmail APIs.
 
+## Architecture
+
+### Request flow
+
+```
+Client (AI agent)
+  │
+  ▼
+Cardea (FastAPI)
+  ├─ Match route by prefix
+  ├─ Load secret from /run/secrets/ or env var
+  ├─ Inject credentials into upstream request
+  │
+  ▼
+Upstream service (Gmail, GitHub, Telegram, …)
+```
+
+Every request flows through the same pattern: the agent calls a local Cardea
+endpoint with no authentication, Cardea looks up the appropriate secret and
+injects it (as a Bearer token, Basic auth header, query parameter, etc.),
+then streams the upstream response back to the caller.
+
+### Two kinds of services
+
+**Config-driven generic services** are declared entirely in `config.toml`
+under `[services.*]` sections. Each section specifies a URL prefix, an
+upstream base URL, and an auth type. The generic proxy engine
+(`cardea.proxies.generic`) builds a catch-all route for each service at
+startup — no Python code required. This covers most REST API integrations.
+
+**Custom modules** handle cases that need special logic (OAuth2 token
+refresh, protocol translation, multi-step flows). Each module is a Python
+file in `src/cardea/proxies/` that exports:
+
+| Export   | Required | Description                                |
+|----------|----------|--------------------------------------------|
+| `router` | Yes      | A FastAPI `APIRouter` with the endpoints   |
+| `PREFIX` | No       | URL prefix (defaults to `/<module_name>`)  |
+| `TAG`    | No       | OpenAPI tag (defaults to module name)      |
+
+### Module auto-discovery
+
+At startup, `app.py` iterates over all Python files in `cardea.proxies`
+using `pkgutil.iter_modules`. A module is loaded only if it is enabled in
+the `[modules]` table of `config.toml` (e.g. `email = true`). The browser
+credential manager is a special case — it loads automatically when a
+`[browser]` config section exists, without needing a `[modules]` entry.
+
+### Secrets
+
+Secrets are resolved lazily on each request via `cardea.secrets.get_secret`:
+first as a file in `/run/secrets/<name>` (for container secret mounts),
+falling back to an environment variable of the same name.
+
 ## Running
 
 ### Directly with uv
