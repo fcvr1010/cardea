@@ -2,7 +2,16 @@
 name = "cardea"
 version = "0.1.0"
 description = "Proxy to allow AI agents to safely access services, without the need for credentials"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Francesco Cavrini"}]
 requires-python = ">=3.12"
+keywords = ["proxy", "credentials", "ai-agents", "security", "gateway"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "fastapi>=0.132.0,<0.133.0",
     "httpx>=0.28.1,<0.29.0",
@@ -10,6 +19,11 @@ dependencies = [
     "uvicorn[standard]>=0.41.0,<0.42.0",
     "websockets>=14.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/fcvr1010/cardea"
+Repository = "https://github.com/fcvr1010/cardea"
+Issues = "https://github.com/fcvr1010/cardea/issues"
 
 [project.scripts]
 cardea = "cardea.__main__:main"
