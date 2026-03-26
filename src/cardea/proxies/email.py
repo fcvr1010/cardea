@@ -25,6 +25,7 @@ import email as email_pkg
 import email.utils
 import imaplib
 import logging
+import os
 import smtplib
 import tomllib
 from email.header import decode_header
@@ -44,7 +45,11 @@ TAG = "Email"
 
 router = APIRouter()
 
-CONFIG_PATH = Path(__file__).resolve().parent.parent.parent.parent / "config.toml"
+CONFIG_PATH = (
+    Path(os.environ["CARDEA_CONFIG"])
+    if os.environ.get("CARDEA_CONFIG")
+    else Path(__file__).resolve().parent.parent.parent.parent / "config.toml"
+)
 
 
 # -- Configuration -----------------------------------------------------------
