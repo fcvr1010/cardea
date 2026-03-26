@@ -8,6 +8,7 @@ to the assistant.
 
 import importlib
 import logging
+import os
 import pkgutil
 import tomllib
 from pathlib import Path
@@ -27,7 +28,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.toml"
+CONFIG_PATH = (
+    Path(os.environ["CARDEA_CONFIG"])
+    if os.environ.get("CARDEA_CONFIG")
+    else Path(__file__).resolve().parent.parent.parent / "config.toml"
+)
 
 
 def _load_config() -> dict[str, Any]:

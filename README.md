@@ -32,6 +32,10 @@ no auth. Then Cardea injects the credentials and submits the actual request to t
 Copy `config.toml.example` to `config.toml` and enable the modules you need.
 Set the required credentials as environment variables (listed in `config.toml.example`), then:
 
+> **Tip:** Set `CARDEA_CONFIG=/path/to/config.toml` to override the default
+> config location. When unset, Cardea looks for `config.toml` in the
+> repository root.
+
 ```bash
 uv run cardea --host 127.0.0.1 --port 8000
 ```
