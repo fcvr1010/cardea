@@ -5,4 +5,6 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY src/ src/
+RUN useradd -r -s /bin/false cardea
+USER cardea
 CMD ["uv", "run", "cardea"]
