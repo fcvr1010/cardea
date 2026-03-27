@@ -115,6 +115,57 @@ podman run --secret cardea_github_token -v ./config.toml:/app/config.toml:ro -p 
 
 Mount your `config.toml` into the container at `/app/config.toml`.
 
+## Client library
+
+Cardea ships an optional Python client library that wraps the proxy
+endpoints into simple function calls. Install it with:
+
+```bash
+pip install cardea[client]
+```
+
+### Quick start
+
+```python
+from cardea.client.email import send_email, list_messages
+from cardea.client.github import github_api, create_pr
+from cardea.client.browser import fill_credentials
+
+# List unread emails
+messages = list_messages(query="UNSEEN")
+
+# Send an email
+send_email(to="alice@example.com", subject="Hello", body="Hi from Cardea!")
+
+# Create a GitHub pull request
+create_pr("owner", "repo", title="My PR", head="feature-branch")
+
+# Fill a login form in a browser
+fill_credentials("github.com/login")
+```
+
+By default the client connects to `http://localhost:8000`. Override this
+with the `CARDEA_URL` environment variable or pass `base_url` explicitly
+to any function:
+
+```python
+list_messages(base_url="http://cardea.local:8000")
+```
+
+### Using with AI agents
+
+AI agents can call the client directly from a shell:
+
+```bash
+python3 -c "
+from cardea.client.email import list_messages
+import json
+print(json.dumps(list_messages(query='UNSEEN'), indent=2))
+"
+```
+
+This pattern avoids raw `httpx` calls and keeps agent tool code minimal.
+
 ## Contributing
 
 Contributions from coding agents are welcome too. Respecting the architecture is mandatory.
