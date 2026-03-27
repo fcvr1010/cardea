@@ -16,6 +16,7 @@ Shared HTTP helpers for Cardea client modules.
 from __future__ import annotations
 
 import os
+from typing import Any
 
 import httpx
 
@@ -43,7 +44,7 @@ def _request(
     url: str,
     *,
     params: dict[str, str | int] | None = None,
-    json: dict[str, object] | None = None,
+    json: dict[str, Any] | None = None,
     timeout: float = 30.0,
 ) -> httpx.Response:
     """Send an HTTP request and raise on non-2xx status.

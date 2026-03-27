@@ -5,7 +5,7 @@ GitHub client for Cardea — interact with the GitHub API through the proxy.
     list_prs(owner, repo, state="open", per_page=10, base_url=None) -> list[dict]
     get_pr(owner, repo, pr_number, base_url=None) -> dict
     create_pr(owner, repo, title, head, base="main", body="", base_url=None) -> dict
-    merge_pr(owner, repo, pr_number, merge_method="squash", commit_title=None, commit_message=None, base_url=None) -> dict
+    merge_pr(owner, repo, pr_number, merge_method: "merge"|"squash"|"rebase" = "squash", commit_title=None, commit_message=None, base_url=None) -> dict
     delete_branch(owner, repo, branch, base_url=None) -> dict
 
 Server endpoint: ``/github/api/{path}`` — generic proxy to ``api.github.com``.
@@ -25,7 +25,7 @@ Return values:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from cardea.client._base import _request, _resolve_base_url
 
@@ -34,7 +34,7 @@ def github_api(
     endpoint: str,
     method: str = "GET",
     params: dict[str, str | int] | None = None,
-    json_body: dict[str, object] | None = None,
+    json_body: dict[str, Any] | None = None,
     base_url: str | None = None,
 ) -> dict[str, Any] | list[dict[str, Any]]:
     """Make an arbitrary GitHub API call through the Cardea proxy.
@@ -50,11 +50,11 @@ def github_api(
     Returns:
         Parsed JSON response (dict or list of dicts).
     """
-    base = _resolve_base_url(base_url)
+    url = _resolve_base_url(base_url)
     endpoint = endpoint.lstrip("/")
     response = _request(
         method,
-        f"{base}/github/api/{endpoint}",
+        f"{url}/github/api/{endpoint}",
         params=params,
         json=json_body,
     )
@@ -82,11 +82,11 @@ def list_prs(
         List of PR dicts with keys like ``number``, ``title``, ``state``,
         ``user``, ``html_url``, ``created_at``, ``updated_at``.
     """
-    base = _resolve_base_url(base_url)
+    url = _resolve_base_url(base_url)
     params: dict[str, str | int] = {"state": state, "per_page": per_page}
     response = _request(
         "GET",
-        f"{base}/github/api/repos/{owner}/{repo}/pulls",
+        f"{url}/github/api/repos/{owner}/{repo}/pulls",
         params=params,
     )
     result: list[dict[str, Any]] = response.json()
@@ -111,10 +111,10 @@ def get_pr(
         PR dict with keys like ``number``, ``title``, ``state``, ``body``,
         ``user``, ``html_url``, ``mergeable``.
     """
-    base = _resolve_base_url(base_url)
+    url = _resolve_base_url(base_url)
     response = _request(
         "GET",
-        f"{base}/github/api/repos/{owner}/{repo}/pulls/{pr_number}",
+        f"{url}/github/api/repos/{owner}/{repo}/pulls/{pr_number}",
     )
     result: dict[str, Any] = response.json()
     return result
@@ -143,8 +143,8 @@ def create_pr(
     Returns:
         Created PR dict with keys like ``number``, ``title``, ``html_url``.
     """
-    resolved_base_url = _resolve_base_url(base_url)
-    payload: dict[str, object] = {
+    url = _resolve_base_url(base_url)
+    payload: dict[str, Any] = {
         "title": title,
         "head": head,
         "base": base,
@@ -152,7 +152,7 @@ def create_pr(
     }
     response = _request(
         "POST",
-        f"{resolved_base_url}/github/api/repos/{owner}/{repo}/pulls",
+        f"{url}/github/api/repos/{owner}/{repo}/pulls",
         json=payload,
     )
     result: dict[str, Any] = response.json()
@@ -163,7 +163,7 @@ def merge_pr(
     owner: str,
     repo: str,
     pr_number: int,
-    merge_method: str = "squash",
+    merge_method: Literal["merge", "squash", "rebase"] = "squash",
     commit_title: str | None = None,
     commit_message: str | None = None,
     base_url: str | None = None,
@@ -183,15 +183,15 @@ def merge_pr(
     Returns:
         Dict with keys ``sha``, ``merged``, ``message``.
     """
-    resolved_base_url = _resolve_base_url(base_url)
-    payload: dict[str, object] = {"merge_method": merge_method}
+    url = _resolve_base_url(base_url)
+    payload: dict[str, Any] = {"merge_method": merge_method}
     if commit_title:
         payload["commit_title"] = commit_title
     if commit_message:
         payload["commit_message"] = commit_message
     response = _request(
         "PUT",
-        f"{resolved_base_url}/github/api/repos/{owner}/{repo}/pulls/{pr_number}/merge",
+        f"{url}/github/api/repos/{owner}/{repo}/pulls/{pr_number}/merge",
         json=payload,
     )
     result: dict[str, Any] = response.json()
@@ -219,10 +219,10 @@ def delete_branch(
         GitHub returns 204 No Content on success. This function
         synthesises a dict response for consistency.
     """
-    resolved_base_url = _resolve_base_url(base_url)
+    url = _resolve_base_url(base_url)
     _request(
         "DELETE",
-        f"{resolved_base_url}/github/api/repos/{owner}/{repo}/git/refs/heads/{branch}",
+        f"{url}/github/api/repos/{owner}/{repo}/git/refs/heads/{branch}",
     )
     # 204 No Content = success, no JSON body
     return {"deleted": True, "branch": branch}

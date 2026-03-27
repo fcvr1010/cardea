@@ -1,7 +1,7 @@
 """
 Email client for Cardea — list, read, send, and reply to emails.
 
-    list_messages(query="ALL", max=10, base_url=None) -> list[dict]
+    list_messages(query="ALL", limit=10, base_url=None) -> list[dict]
     read_message(message_id, base_url=None) -> dict
     send_email(to, subject, body, cc=None, bcc=None, base_url=None) -> dict
     reply_email(message_id, to, subject, body, base_url=None) -> dict
@@ -36,27 +36,27 @@ from cardea.client._base import _request, _resolve_base_url
 
 def list_messages(
     query: str = "ALL",
-    max: int = 10,
+    limit: int = 10,
     base_url: str | None = None,
 ) -> list[dict[str, Any]]:
     """List email messages matching an IMAP SEARCH query.
 
     Args:
         query: IMAP SEARCH expression (default ``"ALL"``).
-        max: Maximum number of messages to return (default 10).
+        limit: Maximum number of messages to return (default 10).
         base_url: Override the Cardea server URL.
 
     Returns:
         List of message summaries, each with keys:
         ``id``, ``subject``, ``from``, ``date``, ``snippet``.
     """
-    base = _resolve_base_url(base_url)
+    url = _resolve_base_url(base_url)
     params: dict[str, str | int] = {}
     if query and query != "ALL":
         params["q"] = query
-    if max != 10:
-        params["max"] = max
-    response = _request("GET", f"{base}/email/messages", params=params, timeout=60.0)
+    if limit != 10:
+        params["max"] = limit
+    response = _request("GET", f"{url}/email/messages", params=params, timeout=60.0)
     result: list[dict[str, Any]] = response.json()
     return result
 
@@ -77,8 +77,8 @@ def read_message(
         Message dict with keys:
         ``id``, ``from``, ``to``, ``cc``, ``subject``, ``date``, ``body``.
     """
-    base = _resolve_base_url(base_url)
-    response = _request("GET", f"{base}/email/messages/{message_id}")
+    url = _resolve_base_url(base_url)
+    response = _request("GET", f"{url}/email/messages/{message_id}")
     result: dict[str, Any] = response.json()
     return result
 
@@ -104,13 +104,13 @@ def send_email(
     Returns:
         Dict with ``id`` key containing the Message-ID of the sent email.
     """
-    base = _resolve_base_url(base_url)
-    payload: dict[str, object] = {"to": to, "subject": subject, "body": body}
+    url = _resolve_base_url(base_url)
+    payload: dict[str, Any] = {"to": to, "subject": subject, "body": body}
     if cc:
         payload["cc"] = cc
     if bcc:
         payload["bcc"] = bcc
-    response = _request("POST", f"{base}/email/send", json=payload)
+    response = _request("POST", f"{url}/email/send", json=payload)
     result: dict[str, Any] = response.json()
     return result
 
@@ -137,8 +137,8 @@ def reply_email(
     Returns:
         Dict with ``id`` key containing the Message-ID of the sent reply.
     """
-    base = _resolve_base_url(base_url)
-    payload: dict[str, object] = {"to": to, "subject": subject, "body": body}
-    response = _request("POST", f"{base}/email/reply/{message_id}", json=payload)
+    url = _resolve_base_url(base_url)
+    payload: dict[str, Any] = {"to": to, "subject": subject, "body": body}
+    response = _request("POST", f"{url}/email/reply/{message_id}", json=payload)
     result: dict[str, Any] = response.json()
     return result

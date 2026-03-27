@@ -4,6 +4,9 @@ Tests for the email client module (cardea.client.email).
 Uses respx to mock httpx requests — no server or network needed.
 """
 
+import json
+
+import httpx
 import respx
 from httpx import Response
 
@@ -38,12 +41,12 @@ def test_list_messages_with_query():
 
 
 @respx.mock
-def test_list_messages_with_max():
-    """list_messages(max=5) passes 'max' as a query parameter."""
+def test_list_messages_with_limit():
+    """list_messages(limit=5) passes 'max' as a query parameter."""
     route = respx.get(f"{BASE}/email/messages", params={"max": 5}).mock(
         return_value=Response(200, json=[{"id": "1"}])
     )
-    result = list_messages(max=5)
+    result = list_messages(limit=5)
     assert len(result) == 1
     assert route.called
 
@@ -99,8 +102,6 @@ def test_send_email_minimal():
     assert route.called
     # Verify the request body
     sent = route.calls[0].request
-    import json
-
     body_data = json.loads(sent.content)
     assert body_data["to"] == "x@y.com"
     assert body_data["subject"] == "Hi"
@@ -123,8 +124,6 @@ def test_send_email_with_cc_bcc():
         bcc="bcc@b.com",
     )
     assert result["id"] == "<msg-id>"
-    import json
-
     body_data = json.loads(route.calls[0].request.content)
     assert body_data["cc"] == "cc@b.com"
     assert body_data["bcc"] == "bcc@b.com"
@@ -142,8 +141,6 @@ def test_reply_email():
     result = reply_email(message_id=50, to="a@b.com", subject="Re: Hi", body="Reply")
     assert result == {"id": "<reply-id>"}
     assert route.called
-    import json
-
     body_data = json.loads(route.calls[0].request.content)
     assert body_data["to"] == "a@b.com"
     assert body_data["subject"] == "Re: Hi"
@@ -159,8 +156,6 @@ def test_send_email_raises_on_error():
     respx.post(f"{BASE}/email/send").mock(
         return_value=Response(502, json={"detail": "SMTP error"})
     )
-    import httpx
-
     try:
         send_email(to="x@y.com", subject="Hi", body="Hello")
         raise AssertionError("Expected HTTPStatusError")
