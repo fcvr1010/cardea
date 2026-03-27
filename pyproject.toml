@@ -20,6 +20,9 @@ dependencies = [
     "websockets>=14.0",
 ]
 
+[project.optional-dependencies]
+client = ["httpx>=0.28.1,<0.29.0"]
+
 [project.urls]
 Homepage = "https://github.com/fcvr1010/cardea"
 Repository = "https://github.com/fcvr1010/cardea"
@@ -45,6 +48,7 @@ dev = [
     "pytest>=9.0.2,<10.0.0",
     "pytest-asyncio>=1.3.0,<2.0.0",
     "pytest-cov>=6.1",
+    "respx>=0.22",
     "ruff>=0.11",
 ]
 
