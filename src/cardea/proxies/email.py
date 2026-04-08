@@ -15,10 +15,11 @@ Secret:
 
 Endpoints
 ---------
-GET  /messages              List messages matching an IMAP SEARCH query.
-GET  /messages/{message_id} Fetch a full message by UID; marks it as read.
-POST /send                  Send a new email via SMTP.
-POST /reply/{message_id}    Reply to an existing message (sets In-Reply-To).
+GET    /messages              List messages matching an IMAP SEARCH query.
+GET    /messages/{message_id} Fetch a full message by UID; marks it as read.
+DELETE /messages/{message_id} Delete a message by UID (flag + expunge).
+POST   /send                  Send a new email via SMTP.
+POST   /reply/{message_id}    Reply to an existing message (sets In-Reply-To).
 """
 
 import email as email_pkg
@@ -288,6 +289,45 @@ async def get_message(message_id: str) -> dict[str, Any]:
             "date": msg["Date"] or "",
             "body": _extract_body(msg),
         }
+    finally:
+        try:
+            conn.logout()
+        except Exception:
+            pass
+
+
+# -- Delete message -----------------------------------------------------------
+
+
+@router.delete("/messages/{message_id}")
+async def delete_message(message_id: str) -> dict[str, str]:
+    """Delete a message by IMAP UID.
+
+    Sets the ``\\Deleted`` flag and expunges the mailbox to permanently
+    remove the message.
+    """
+    cfg = _load_email_config()
+    password = _get_password()
+    conn = _imap_connect(cfg, password)
+    try:
+        conn.select("INBOX")
+
+        # Verify the message exists.
+        _status, msg_data = conn.uid("FETCH", message_id, "(FLAGS)")
+        if not msg_data or msg_data[0] is None:
+            raise HTTPException(status_code=404, detail="Message not found.")
+
+        # Mark as deleted and expunge.
+        try:
+            conn.uid("STORE", message_id, "+FLAGS", "(\\Deleted)")
+            conn.expunge()
+        except imaplib.IMAP4.error as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Failed to delete message: {exc}",
+            )
+
+        return {"id": message_id}
     finally:
         try:
             conn.logout()

@@ -3,19 +3,23 @@ Email client for Cardea — list, read, send, and reply to emails.
 
     list_messages(query="ALL", limit=10, base_url=None) -> list[dict]
     read_message(message_id, base_url=None) -> dict
+    delete_message(message_id, base_url=None) -> dict
     send_email(to, subject, body, cc=None, bcc=None, base_url=None) -> dict
     reply_email(message_id, to, subject, body, base_url=None) -> dict
 
 Server endpoints (under ``/email``):
 
-- ``GET  /messages``              — list messages (IMAP SEARCH)
-- ``GET  /messages/{message_id}`` — fetch a full message by UID
-- ``POST /send``                  — send a new email
-- ``POST /reply/{message_id}``    — reply to an existing message
+- ``GET    /messages``              — list messages (IMAP SEARCH)
+- ``GET    /messages/{message_id}`` — fetch a full message by UID
+- ``DELETE /messages/{message_id}`` — delete a message by UID
+- ``POST   /send``                  — send a new email
+- ``POST   /reply/{message_id}``    — reply to an existing message
 
 Each item from ``list_messages``: ``{id, subject, from, date, snippet}``
 
 ``read_message`` returns: ``{id, from, to, cc, subject, date, body}``
+
+``delete_message`` returns: ``{id}`` (the IMAP UID of the deleted message)
 
 ``send_email`` / ``reply_email`` return: ``{id}`` (the Message-ID)
 
@@ -79,6 +83,27 @@ def read_message(
     """
     url = _resolve_base_url(base_url)
     response = _request("GET", f"{url}/email/messages/{message_id}")
+    result: dict[str, Any] = response.json()
+    return result
+
+
+def delete_message(
+    message_id: int,
+    base_url: str | None = None,
+) -> dict[str, Any]:
+    """Delete an email message by IMAP UID.
+
+    The message is flagged as deleted and expunged from the mailbox.
+
+    Args:
+        message_id: IMAP UID of the message to delete.
+        base_url: Override the Cardea server URL.
+
+    Returns:
+        Dict with ``id`` key containing the UID of the deleted message.
+    """
+    url = _resolve_base_url(base_url)
+    response = _request("DELETE", f"{url}/email/messages/{message_id}")
     result: dict[str, Any] = response.json()
     return result
 
