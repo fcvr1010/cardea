@@ -20,7 +20,13 @@ explicitly to any function.
 """
 
 from cardea.client.browser import fill_credentials
-from cardea.client.email import list_messages, read_message, reply_email, send_email
+from cardea.client.email import (
+    delete_message,
+    list_messages,
+    read_message,
+    reply_email,
+    send_email,
+)
 from cardea.client.github import (
     create_pr,
     delete_branch,
@@ -33,6 +39,7 @@ from cardea.client.github import (
 __all__ = [
     "create_pr",
     "delete_branch",
+    "delete_message",
     "fill_credentials",
     "get_pr",
     "github_api",
