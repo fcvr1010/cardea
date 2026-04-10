@@ -316,8 +316,12 @@ async def delete_message(message_id: str) -> dict[str, bool]:
         if not msg_data or msg_data[0] is None:
             raise HTTPException(status_code=404, detail="Message not found.")
 
+        raw = msg_data[0][1] if isinstance(msg_data[0], tuple) else b""
+        if not raw:
+            raise HTTPException(status_code=404, detail="Message not found.")
+
         conn.uid("STORE", message_id, "+FLAGS", "(\\Deleted)")
-        conn.expunge()
+        conn.uid("EXPUNGE", message_id)
         return {"deleted": True}
     finally:
         try:
