@@ -10,7 +10,13 @@ import httpx
 import respx
 from httpx import Response
 
-from cardea.client.email import list_messages, read_message, reply_email, send_email
+from cardea.client.email import (
+    delete_message,
+    list_messages,
+    read_message,
+    reply_email,
+    send_email,
+)
 
 BASE = "http://localhost:8000"
 
@@ -86,6 +92,44 @@ def test_read_message_custom_base_url():
     result = read_message(10, base_url="http://other:8080")
     assert result["id"] == "10"
     assert route.called
+
+
+# -- delete_message ----------------------------------------------------------
+
+
+@respx.mock
+def test_delete_message():
+    """delete_message(25) sends DELETE /email/messages/25."""
+    route = respx.delete(f"{BASE}/email/messages/25").mock(
+        return_value=Response(200, json={"deleted": True})
+    )
+    result = delete_message(25)
+    assert result == {"deleted": True}
+    assert route.called
+
+
+@respx.mock
+def test_delete_message_custom_base_url():
+    """delete_message with explicit base_url."""
+    route = respx.delete("http://other:8080/email/messages/10").mock(
+        return_value=Response(200, json={"deleted": True})
+    )
+    result = delete_message(10, base_url="http://other:8080")
+    assert result["deleted"] is True
+    assert route.called
+
+
+@respx.mock
+def test_delete_message_not_found_raises():
+    """delete_message raises httpx.HTTPStatusError on 404."""
+    respx.delete(f"{BASE}/email/messages/999").mock(
+        return_value=Response(404, json={"detail": "Message not found."})
+    )
+    try:
+        delete_message(999)
+        raise AssertionError("Expected HTTPStatusError")
+    except httpx.HTTPStatusError as exc:
+        assert exc.response.status_code == 404
 
 
 # -- send_email --------------------------------------------------------------

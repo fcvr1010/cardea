@@ -15,10 +15,11 @@ Secret:
 
 Endpoints
 ---------
-GET  /messages              List messages matching an IMAP SEARCH query.
-GET  /messages/{message_id} Fetch a full message by UID; marks it as read.
-POST /send                  Send a new email via SMTP.
-POST /reply/{message_id}    Reply to an existing message (sets In-Reply-To).
+GET    /messages              List messages matching an IMAP SEARCH query.
+GET    /messages/{message_id} Fetch a full message by UID; marks it as read.
+DELETE /messages/{message_id} Permanently delete a message by UID (IMAP expunge).
+POST   /send                  Send a new email via SMTP.
+POST   /reply/{message_id}    Reply to an existing message (sets In-Reply-To).
 """
 
 import email as email_pkg
@@ -288,6 +289,36 @@ async def get_message(message_id: str) -> dict[str, Any]:
             "date": msg["Date"] or "",
             "body": _extract_body(msg),
         }
+    finally:
+        try:
+            conn.logout()
+        except Exception:
+            pass
+
+
+# -- Delete message -----------------------------------------------------------
+
+
+@router.delete("/messages/{message_id}")
+async def delete_message(message_id: str) -> dict[str, bool]:
+    """Permanently delete a message by IMAP UID.
+
+    Sets the ``\\Deleted`` flag and expunges the mailbox.
+    """
+    cfg = _load_email_config()
+    password = _get_password()
+    conn = _imap_connect(cfg, password)
+    try:
+        conn.select("INBOX")
+
+        # Verify the message exists before attempting deletion.
+        _status, msg_data = conn.uid("FETCH", message_id, "(FLAGS)")
+        if not msg_data or msg_data[0] is None:
+            raise HTTPException(status_code=404, detail="Message not found.")
+
+        conn.uid("STORE", message_id, "+FLAGS", "(\\Deleted)")
+        conn.expunge()
+        return {"deleted": True}
     finally:
         try:
             conn.logout()

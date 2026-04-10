@@ -333,6 +333,47 @@ def test_get_message_not_found_returns_404(mock_imap_cls, _mock_cfg):
     assert response.status_code == 404
 
 
+# ── DELETE /email/messages/{id} ──────────────────────────────────────────────
+
+
+@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email.imaplib.IMAP4_SSL")
+def test_delete_message_success(mock_imap_cls, _mock_cfg):
+    """DELETE /email/messages/{id} sets \\Deleted flag and expunges."""
+    imap = _mock_imap(fetch_responses={"25": [(b"25 (FLAGS (\\Seen))", b""), b")"]})
+    imap.expunge = MagicMock(return_value=("OK", []))
+    mock_imap_cls.return_value = imap
+
+    with patch.dict("os.environ", CRED_ENV):
+        response = client.delete("/email/messages/25")
+
+    assert response.status_code == 200
+    assert response.json() == {"deleted": True}
+
+    # Verify STORE +FLAGS (\\Deleted) was called.
+    store_calls = [call for call in imap.uid.call_args_list if call.args[0] == "STORE"]
+    assert len(store_calls) == 1
+    assert store_calls[0].args[1] == "25"
+    assert store_calls[0].args[2] == "+FLAGS"
+    assert store_calls[0].args[3] == "(\\Deleted)"
+
+    # Verify EXPUNGE was called.
+    imap.expunge.assert_called_once()
+
+
+@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email.imaplib.IMAP4_SSL")
+def test_delete_message_not_found_returns_404(mock_imap_cls, _mock_cfg):
+    """DELETE on a nonexistent UID returns 404."""
+    imap = _mock_imap(fetch_responses={})
+    mock_imap_cls.return_value = imap
+
+    with patch.dict("os.environ", CRED_ENV):
+        response = client.delete("/email/messages/999")
+
+    assert response.status_code == 404
+
+
 # ── POST /email/send ─────────────────────────────────────────────────────────
 
 
