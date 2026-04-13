@@ -312,12 +312,11 @@ async def delete_message(message_id: str) -> dict[str, bool]:
         conn.select("INBOX")
 
         # Verify the message exists before attempting deletion.
+        # FLAGS fetch returns e.g. [b'321 (UID 321 FLAGS (\\Seen))'] — a list
+        # with a bytes element, not a tuple.  We only need to confirm the
+        # server returned OK and a non-empty, non-None response.
         _status, msg_data = conn.uid("FETCH", message_id, "(FLAGS)")
-        if not msg_data or msg_data[0] is None:
-            raise HTTPException(status_code=404, detail="Message not found.")
-
-        raw = msg_data[0][1] if isinstance(msg_data[0], tuple) else b""
-        if not raw:
+        if _status != "OK" or not msg_data or msg_data[0] is None:
             raise HTTPException(status_code=404, detail="Message not found.")
 
         conn.uid("STORE", message_id, "+FLAGS", "(\\Deleted)")
