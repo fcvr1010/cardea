@@ -342,9 +342,7 @@ def test_get_message_not_found_returns_404(mock_imap_cls, _mock_cfg):
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_delete_message_success(mock_imap_cls, _mock_cfg):
     """DELETE /email/messages/{id} sets \\Deleted flag and UID-expunges."""
-    imap = _mock_imap(
-        fetch_responses={"25": [(b"25 (FLAGS (\\Seen))", b"\\Seen"), b")"]}
-    )
+    imap = _mock_imap()
     mock_imap_cls.return_value = imap
 
     with patch.dict("os.environ", CRED_ENV):
@@ -353,14 +351,12 @@ def test_delete_message_success(mock_imap_cls, _mock_cfg):
     assert response.status_code == 200
     assert response.json() == {"deleted": True}
 
-    # Collect uid calls by command for ordering and content checks.
+    # Collect uid calls by command.
     uid_calls = imap.uid.call_args_list
     commands = [call.args[0] for call in uid_calls]
 
-    # FETCH must happen before STORE (preflight existence check).
-    fetch_idx = commands.index("FETCH")
-    store_idx = commands.index("STORE")
-    assert fetch_idx < store_idx, "FETCH (existence check) must precede STORE"
+    # No preflight FETCH — STORE and EXPUNGE only.
+    assert "FETCH" not in commands
 
     # Verify STORE +FLAGS (\\Deleted) was called.
     store_calls = [call for call in uid_calls if call.args[0] == "STORE"]
@@ -378,8 +374,42 @@ def test_delete_message_success(mock_imap_cls, _mock_cfg):
 @patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
 @patch("cardea.proxies.email.imaplib.IMAP4_SSL")
 def test_delete_message_not_found_returns_404(mock_imap_cls, _mock_cfg):
-    """DELETE on a nonexistent UID returns 404."""
-    imap = _mock_imap(fetch_responses={})
+    """DELETE on a nonexistent UID returns 404 when STORE reports failure."""
+    imap = _mock_imap()
+
+    # Override uid side effect so STORE returns NO for unknown UIDs.
+    original_side_effect = imap.uid.side_effect
+
+    def uid_fail_store(command: str, *args: object) -> tuple[str, list[Any]]:
+        if command == "STORE":
+            return ("NO", [b""])
+        assert original_side_effect is not None
+        result: tuple[str, list[Any]] = original_side_effect(command, *args)
+        return result
+
+    imap.uid.side_effect = uid_fail_store
+    mock_imap_cls.return_value = imap
+
+    with patch.dict("os.environ", CRED_ENV):
+        response = client.delete("/email/messages/999")
+
+    assert response.status_code == 404
+
+
+@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email.imaplib.IMAP4_SSL")
+def test_delete_message_imap_error_returns_404(mock_imap_cls, _mock_cfg):
+    """DELETE returns 404 when IMAP raises an error for invalid UID."""
+    import imaplib as _imaplib
+
+    imap = _mock_imap()
+
+    def uid_raise(command: str, *args: object) -> tuple[str, list[Any]]:
+        if command == "STORE":
+            raise _imaplib.IMAP4.error("UID command error")
+        return ("OK", [])
+
+    imap.uid.side_effect = uid_raise
     mock_imap_cls.return_value = imap
 
     with patch.dict("os.environ", CRED_ENV):
