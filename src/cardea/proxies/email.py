@@ -311,17 +311,18 @@ async def delete_message(message_id: str) -> dict[str, bool]:
     try:
         conn.select("INBOX")
 
-        # Verify the message exists before attempting deletion.
-        _status, msg_data = conn.uid("FETCH", message_id, "(FLAGS)")
-        if not msg_data or msg_data[0] is None:
+        # Skip existence pre-check — IMAP FLAGS responses vary across servers
+        # (plain bytes vs. tuple with None) making reliable detection fragile.
+        # Instead, attempt STORE + EXPUNGE directly and let IMAP errors surface.
+        try:
+            status, _data = conn.uid("STORE", message_id, "+FLAGS", "(\\Deleted)")
+            if status != "OK":
+                raise HTTPException(status_code=404, detail="Message not found.")
+            conn.uid("EXPUNGE", message_id)
+        except HTTPException:
+            raise
+        except imaplib.IMAP4.error:
             raise HTTPException(status_code=404, detail="Message not found.")
-
-        raw = msg_data[0][1] if isinstance(msg_data[0], tuple) else b""
-        if not raw:
-            raise HTTPException(status_code=404, detail="Message not found.")
-
-        conn.uid("STORE", message_id, "+FLAGS", "(\\Deleted)")
-        conn.uid("EXPUNGE", message_id)
         return {"deleted": True}
     finally:
         try:
