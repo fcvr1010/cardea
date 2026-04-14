@@ -383,7 +383,6 @@ def test_delete_message_not_found_returns_404(mock_imap_cls, _mock_cfg):
     def uid_fail_store(command: str, *args: object) -> tuple[str, list[Any]]:
         if command == "STORE":
             return ("NO", [b""])
-        assert original_side_effect is not None
         result: tuple[str, list[Any]] = original_side_effect(command, *args)
         return result
 
@@ -394,6 +393,34 @@ def test_delete_message_not_found_returns_404(mock_imap_cls, _mock_cfg):
         response = client.delete("/email/messages/999")
 
     assert response.status_code == 404
+
+
+@patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)
+@patch("cardea.proxies.email.imaplib.IMAP4_SSL")
+def test_delete_message_unknown_uid_silent_success(mock_imap_cls, _mock_cfg):
+    """DELETE on unknown UID returns 200 when STORE returns OK with empty data.
+
+    Per RFC 3501, STORE on a nonexistent UID silently succeeds with ("OK", []).
+    This is accepted behaviour — delete is idempotent.
+    """
+    imap = _mock_imap()
+
+    original_side_effect = imap.uid.side_effect
+
+    def uid_store_empty(command: str, *args: object) -> tuple[str, list[Any]]:
+        if command == "STORE":
+            return ("OK", [])
+        result: tuple[str, list[Any]] = original_side_effect(command, *args)
+        return result
+
+    imap.uid.side_effect = uid_store_empty
+    mock_imap_cls.return_value = imap
+
+    with patch.dict("os.environ", CRED_ENV):
+        response = client.delete("/email/messages/9999")
+
+    assert response.status_code == 200
+    assert response.json() == {"deleted": True}
 
 
 @patch("cardea.proxies.email._load_email_config", return_value=EMAIL_CONFIG)

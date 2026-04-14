@@ -319,6 +319,8 @@ async def delete_message(message_id: str) -> dict[str, bool]:
             if status != "OK":
                 raise HTTPException(status_code=404, detail="Message not found.")
             conn.uid("EXPUNGE", message_id)
+        except HTTPException:
+            raise
         except imaplib.IMAP4.error:
             raise HTTPException(status_code=404, detail="Message not found.")
         return {"deleted": True}
